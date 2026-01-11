@@ -7,7 +7,7 @@ interface Player {
   name: string;
   position: string;
   team: string;
-  espnId?: string;
+  espnId?: string | null;
 }
 
 interface PlayerPickerProps {
@@ -28,18 +28,21 @@ export default function PlayerPicker({
   const [filteredPlayers, setFilteredPlayers] = useState(eligiblePlayers);
 
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = eligiblePlayers.filter(player =>
-        player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        player.team.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredPlayers(filtered);
-    } else {
-      setFilteredPlayers(eligiblePlayers);
-    }
+    const timeoutId = setTimeout(() => {
+      if (searchTerm) {
+        const filtered = eligiblePlayers.filter(player =>
+          player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          player.team.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredPlayers(filtered);
+      } else {
+        setFilteredPlayers(eligiblePlayers);
+      }
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [searchTerm, eligiblePlayers]);
 
-  const getPlayerImageUrl = (espnId?: string) => {
+  const getPlayerImageUrl = (espnId?: string | null) => {
     if (!espnId) return null;
     return `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
   };

@@ -9,7 +9,7 @@ interface Player {
   name: string;
   position: string;
   team: string;
-  espnId?: string;
+  espnId?: string | null;
 }
 
 interface RosterEntry {
@@ -69,7 +69,7 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
     setEditingCell({ position, week });
     
     // Load eligible players for this position
-    const players = await getEligiblePlayers(participantId, position, week);
+    const players = await getEligiblePlayers(participantId, position);
     setEligiblePlayers(players);
     setShowPicker(true);
   };
@@ -117,7 +117,7 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
     setEligiblePlayers([]);
   };
 
-  const getPlayerImageUrl = (espnId?: string) => {
+  const getPlayerImageUrl = (espnId?: string | null) => {
     if (!espnId) return null;
     return `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
   };

@@ -2,7 +2,7 @@
 
 import { db } from '@/app/lib/db';
 import { participants, rosterEntries, seasons } from '@/app/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export async function getOrCreateActiveSeason() {
   try {
@@ -144,7 +144,7 @@ export async function getRosterEntries(participantId: number) {
   }
 }
 
-export async function getEligiblePlayers(participantId: number, position: string, week: number) {
+export async function getEligiblePlayers(participantId: number, position: string) {
   try {
     const { players } = await import('@/app/lib/db/schema');
     const { inArray } = await import('drizzle-orm');
