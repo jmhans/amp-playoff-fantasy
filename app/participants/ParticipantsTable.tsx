@@ -1,0 +1,113 @@
+'use client';
+
+import { useState } from 'react';
+import { claimParticipantAccount } from '@/app/lib/actions';
+import { useRouter } from 'next/navigation';
+
+interface Participant {
+  id: number;
+  name: string;
+  email: string | null;
+  auth0Id: string | null;
+}
+
+interface ParticipantsTableProps {
+  participants: Participant[];
+  userAuth0Id: string;
+  userHasClaimed: boolean;
+}
+
+export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed }: ParticipantsTableProps) {
+  const router = useRouter();
+  const [claimingId, setClaimingId] = useState<number | null>(null);
+
+  const handleClaim = async (participantId: number) => {
+    setClaimingId(participantId);
+    
+    try {
+      const result = await claimParticipantAccount(participantId, userAuth0Id);
+      
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert(result.error || 'Failed to claim account');
+      }
+    } catch (error) {
+      alert('An error occurred while claiming the account');
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead className="bg-gray-50 dark:bg-gray-700">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Action
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Picks
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          {participants.map((participant) => {
+            const isClaimedByUser = participant.auth0Id === userAuth0Id;
+            const isClaimed = !!participant.auth0Id;
+            
+            return (
+              <tr key={participant.id} className={isClaimedByUser ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  {participant.name}
+                  {isClaimedByUser && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(You)</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {isClaimed ? (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Claimed
+                    </span>
+                  ) : (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                      Available
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {!isClaimed && (
+                    <button
+                      onClick={() => handleClaim(participant.id)}
+                      disabled={claimingId === participant.id}
+                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {claimingId === participant.id ? 'Claiming...' : 'Claim'}
+                    </button>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {isClaimed && (
+                    <a
+                      href={`/picks/${participant.id}`}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      View Picks
+                    </a>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
