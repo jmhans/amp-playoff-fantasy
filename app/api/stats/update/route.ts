@@ -119,6 +119,42 @@ export async function POST(request: NextRequest) {
           .where(eq(games.id, game.id));
       }
 
+      // First, parse 2pt conversions from scoring plays (not in boxscore stats)
+      const twoPointConversions = new Map<string, { passing: number, rushing: number, receiving: number }>();
+      
+      if (gameData.scoringPlays) {
+        for (const play of gameData.scoringPlays) {
+          const playText = play.text || '';
+          
+          // Look for 2pt conversion patterns
+          if (playText.includes('Two-Point Conversion')) {
+            // Passing 2pt: "PlayerName Pass to ReceiverName for Two-Point Conversion"
+            const passingMatch = playText.match(/([A-Za-z\.\s]+)\s+Pass\s+to\s+([A-Za-z\.\s]+)\s+for\s+Two-Point Conversion/i);
+            if (passingMatch) {
+              const passer = passingMatch[1].trim();
+              const receiver = passingMatch[2].trim();
+              
+              const passerStats = twoPointConversions.get(passer) || { passing: 0, rushing: 0, receiving: 0 };
+              passerStats.passing++;
+              twoPointConversions.set(passer, passerStats);
+              
+              const receiverStats = twoPointConversions.get(receiver) || { passing: 0, rushing: 0, receiving: 0 };
+              receiverStats.receiving++;
+              twoPointConversions.set(receiver, receiverStats);
+            }
+            
+            // Rushing 2pt: "PlayerName Rush for Two-Point Conversion"
+            const rushingMatch = playText.match(/([A-Za-z\.\s]+)\s+Rush\s+for\s+Two-Point Conversion/i);
+            if (rushingMatch) {
+              const rusher = rushingMatch[1].trim();
+              const rusherStats = twoPointConversions.get(rusher) || { passing: 0, rushing: 0, receiving: 0 };
+              rusherStats.rushing++;
+              twoPointConversions.set(rusher, rusherStats);
+            }
+          }
+        }
+      }
+
       // Process player stats
       if (boxscore?.players) {
         for (const teamStats of boxscore.players) {
@@ -196,13 +232,20 @@ export async function POST(request: NextRequest) {
               if (categoryName === 'passing') {
                 statsData.passingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
                 statsData.passingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
-                // 2pt conversions are harder to parse from ESPN, may need different approach
               } else if (categoryName === 'rushing') {
                 statsData.rushingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
                 statsData.rushingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
               } else if (categoryName === 'receiving') {
                 statsData.receivingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
                 statsData.receivingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
+              }
+
+              // Apply 2pt conversions from scoring plays
+              const twoPointers = twoPointConversions.get(athleteName);
+              if (twoPointers) {
+                statsData.passing2PtConversions = twoPointers.passing;
+                statsData.rushing2PtConversions = twoPointers.rushing;
+                statsData.receiving2PtConversions = twoPointers.receiving;
               }
 
               // Calculate fantasy points
