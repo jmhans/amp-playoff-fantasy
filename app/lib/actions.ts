@@ -129,6 +129,9 @@ export async function getRosterEntries(participantId: number) {
         position: rosterEntries.position,
         week: rosterEntries.week,
         team: rosterEntries.team,
+        gameId: rosterEntries.gameId,
+        pickedTeam: rosterEntries.pickedTeam,
+        pickedSpread: rosterEntries.pickedSpread,
         createdAt: rosterEntries.createdAt,
         updatedAt: rosterEntries.updatedAt,
         player: players,
@@ -144,10 +147,30 @@ export async function getRosterEntries(participantId: number) {
   }
 }
 
-export async function getEligiblePlayers(participantId: number, position: string) {
+export async function getEligiblePlayers(participantId: number, position: string, seasonId: number, week: number) {
   try {
-    const { players } = await import('@/app/lib/db/schema');
-    const { inArray } = await import('drizzle-orm');
+    const { players, games } = await import('@/app/lib/db/schema');
+    const { inArray, and } = await import('drizzle-orm');
+    
+    // Get teams playing this week
+    const weekGames = await db
+      .select()
+      .from(games)
+      .where(and(
+        eq(games.seasonId, seasonId),
+        eq(games.week, week)
+      ));
+    
+    const teamsPlaying = new Set<string>();
+    weekGames.forEach(game => {
+      teamsPlaying.add(game.homeTeam);
+      teamsPlaying.add(game.awayTeam);
+    });
+    
+    // If no games scheduled yet, return empty
+    if (teamsPlaying.size === 0) {
+      return [];
+    }
     
     // Get all roster entries for this participant to check what's already used
     const usedEntries = await db
@@ -182,27 +205,35 @@ export async function getEligiblePlayers(participantId: number, position: string
       .from(players)
       .where(inArray(players.position, eligiblePositions));
     
-    // Filter out already used players
-    if (usedPlayerIds.length > 0) {
-      return allPlayers.filter(p => !usedPlayerIds.includes(p.id));
-    }
-    
-    return allPlayers;
+    // Filter players by teams playing this week and exclude already used players
+    return allPlayers.filter(p => 
+      teamsPlaying.has(p.team) && !usedPlayerIds.includes(p.id)
+    );
   } catch (error) {
     console.error('Failed to fetch eligible players:', error);
     return [];
   }
 }
 
-export async function updateRosterEntry(entryId: number, playerId: number | null, playerName: string) {
+export async function updateRosterEntry(
+  entryId: number, 
+  playerId: number | null, 
+  playerName: string,
+  gameId?: number | null,
+  pickedTeam?: string | null,
+  pickedSpread?: number | null
+) {
   try {
-    console.log('updateRosterEntry called:', { entryId, playerId, playerName });
+    console.log('updateRosterEntry called:', { entryId, playerId, playerName, gameId, pickedTeam, pickedSpread });
     
     const result = await db
       .update(rosterEntries)
       .set({ 
         playerId,
         playerName,
+        gameId: gameId ?? null,
+        pickedTeam: pickedTeam ?? null,
+        pickedSpread: pickedSpread ?? null,
         updatedAt: new Date()
       })
       .where(eq(rosterEntries.id, entryId))
@@ -245,5 +276,43 @@ export async function initializeRosterEntries(participantId: number, seasonId?: 
   } catch (error) {
     console.error('Failed to initialize roster entries:', error);
     return { success: false, error: 'Failed to initialize roster entries' };
+  }
+}
+
+export async function getWeekLockTimes(seasonId: number) {
+  try {
+    const { games } = await import('@/app/lib/db/schema');
+    const { min } = await import('drizzle-orm');
+    
+    // Get the earliest game time for each week
+    const lockTimes = await db
+      .select({
+        week: games.week,
+        lockTime: min(games.gameTime),
+      })
+      .from(games)
+      .where(eq(games.seasonId, seasonId))
+      .groupBy(games.week);
+    
+    return lockTimes;
+  } catch (error) {
+    console.error('Failed to fetch week lock times:', error);
+    return [];
+  }
+}
+
+export async function isWeekLocked(seasonId: number, week: number): Promise<boolean> {
+  try {
+    const lockTimes = await getWeekLockTimes(seasonId);
+    const weekLockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
+    
+    if (!weekLockTime) {
+      return false; // No games for this week yet, not locked
+    }
+    
+    return new Date() >= new Date(weekLockTime);
+  } catch (error) {
+    console.error('Failed to check week lock status:', error);
+    return false;
   }
 }
