@@ -1,7 +1,6 @@
 import { auth0 } from '@/app/lib/auth0';
 import { getParticipantById, getOrCreateActiveSeason, getWeekLockTimes } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
-import { lusitana } from '@/app/ui/fonts';
 import Link from 'next/link';
 import PicksGrid from './PicksGrid';
 import CountdownTimer from './CountdownTimer';
@@ -36,29 +35,28 @@ export default async function PicksPage({ params }: Props) {
   const canEdit = isOwner || userIsAdmin;
 
   return (
-    <main className="flex min-h-screen flex-col p-6 bg-white dark:bg-gray-900">
-      <Link
-        href="/participants"
-        className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors mb-4"
-        aria-label="Back to Participants"
-      >
-        <svg
-          className="h-6 w-6"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+    <div className="flex flex-col">
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          href="/participants"
+          className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+          aria-label="Back to Participants"
         >
-          <path d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-        </svg>
-      </Link>
-
-      <div className="flex h-20 shrink-0 items-end rounded-lg bg-blue-500 dark:bg-blue-600 p-4 md:h-32 mb-8">
-        <h1 className={`${lusitana.className} text-white text-3xl md:text-5xl`}>
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+        </Link>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
           {participant.name} - Picks
-        </h1>
+        </h2>
       </div>
 
       {!canEdit && (
@@ -76,6 +74,6 @@ export default async function PicksPage({ params }: Props) {
       <CountdownTimer lockTimes={lockTimes} />
 
       <PicksGrid participantId={participantId} seasonId={season.id} isOwner={canEdit} lockTimes={lockTimes} isAdmin={userIsAdmin} />
-    </main>
+    </div>
   );
 }
