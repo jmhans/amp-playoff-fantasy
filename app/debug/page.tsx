@@ -14,7 +14,7 @@ export default function DebugPage() {
     return (
       <div className="p-6">
         <p>Not logged in</p>
-        <a href="/api/auth/login" className="text-blue-600">Login</a>
+        <a href="/auth/login" className="text-blue-600">Login</a>
       </div>
     );
   }
