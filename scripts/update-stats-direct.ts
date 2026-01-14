@@ -199,17 +199,19 @@ async function updateWeek1Stats() {
               }
               
               // Update stats based on category
-              // Labels: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
+              // Passing Labels: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
+              // Rushing Labels: CAR, YDS, AVG, TD, LONG
+              // Receiving Labels: REC, YDS, AVG, TD, LONG
               if (categoryName === 'passing' && stats.length >= 3) {
                 playerStats.passingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
                 playerStats.passingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
                 // 2pt conversions not in standard stats
-              } else if (categoryName === 'rushing' && stats.length >= 2) {
-                playerStats.rushingYards = parseInt(stats[1]) || 0; // YDS
-                playerStats.rushingTDs = parseInt(stats[2]) || 0; // TD
-              } else if (categoryName === 'receiving' && stats.length >= 2) {
-                playerStats.receivingYards = parseInt(stats[1]) || 0; // YDS
-                playerStats.receivingTDs = parseInt(stats[2]) || 0; // TD
+              } else if (categoryName === 'rushing' && stats.length >= 3) {
+                playerStats.rushingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
+                playerStats.rushingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
+              } else if (categoryName === 'receiving' && stats.length >= 3) {
+                playerStats.receivingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
+                playerStats.receivingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
               }
               
               // Calculate fantasy points
