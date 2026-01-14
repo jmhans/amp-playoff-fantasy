@@ -19,7 +19,7 @@ interface Score {
 
 interface ParticipantsTableProps {
   participants: Participant[];
-  userAuth0Id: string;
+  userAuth0Id: string | null;
   userHasClaimed: boolean;
   scores: Score[];
 }
@@ -40,6 +40,12 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
   };
 
   const handleClaim = async (participantId: number) => {
+    if (!userAuth0Id) {
+      // Redirect to login if not authenticated
+      window.location.href = '/auth/login';
+      return;
+    }
+
     setClaimingId(participantId);
     
     try {
