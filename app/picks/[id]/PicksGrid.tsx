@@ -52,12 +52,16 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
 
   const loadEntries = async () => {
     try {
-      const data = await getRosterEntries(participantId);
+      const data = await getRosterEntries(participantId, seasonId);
+      console.log('getRosterEntries returned:', data.length, 'entries');
+      console.log('Data:', data.map(e => ({ id: e.id, position: e.position, week: e.week, seasonId: e.seasonId })));
       
       // If no entries exist, initialize them
       if (data.length === 0) {
-        await initializeRosterEntries(participantId);
-        const newData = await getRosterEntries(participantId);
+        console.log('Initializing roster entries for participantId:', participantId, 'seasonId:', seasonId);
+        await initializeRosterEntries(participantId, seasonId);
+        const newData = await getRosterEntries(participantId, seasonId);
+        console.log('After initialization, got:', newData.length, 'entries');
         setEntries(newData);
       } else {
         setEntries(data);
@@ -101,6 +105,8 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
     console.log('=== handlePlayerSelect START ===');
     console.log('Player:', player);
     console.log('editingCell:', editingCell);
+    console.log('Entries array length:', entries.length);
+    console.log('Entries:', entries.map(e => ({ id: e.id, position: e.position, week: e.week })));
     
     if (!editingCell) {
       console.log('No editing cell, returning');
@@ -109,6 +115,7 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
 
     try {
       const entry = getEntryForCell(editingCell.position, editingCell.week);
+      console.log('Looking for entry with position:', editingCell.position, 'week:', editingCell.week);
       console.log('Entry found:', entry);
       
       if (entry) {
