@@ -57,6 +57,13 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
     }
   };
 
+  // Sort participants by total score descending
+  const sortedParticipants = [...participants].sort((a, b) => {
+    const totalA = getTotalScore(a.id);
+    const totalB = getTotalScore(b.id);
+    return totalB - totalA;
+  });
+
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -89,7 +96,7 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          {participants.map((participant) => {
+          {sortedParticipants.map((participant) => {
             const isClaimedByUser = participant.auth0Id === userAuth0Id;
             const isClaimed = !!participant.auth0Id;
             
