@@ -1,4 +1,4 @@
-import { getSession } from '@auth0/nextjs-auth0';
+import { auth0 } from '@/app/lib/auth0';
 import { getParticipantById } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
 import { lusitana } from '@/app/ui/fonts';
@@ -12,10 +12,10 @@ interface Props {
 }
 
 export default async function PicksPage({ params }: Props) {
-  const session = await getSession();
+  const session = await auth0.getSession();
   
   if (!session?.user) {
-    redirect('/api/auth/login');
+    redirect('/auth/login');
   }
 
   const { id } = await params;

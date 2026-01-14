@@ -1,4 +1,4 @@
-import { getSession } from '@auth0/nextjs-auth0';
+import { auth0 } from '@/app/lib/auth0';
 import { getParticipants, getParticipantByAuth0Id } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
 import ParticipantsTable from './ParticipantsTable';
@@ -6,7 +6,7 @@ import { lusitana } from '@/app/ui/fonts';
 import Link from 'next/link';
 
 export default async function ParticipantsPage() {
-  const session = await getSession();
+  const session = await auth0.getSession();
   
   if (!session?.user) {
     redirect('/api/auth/login');

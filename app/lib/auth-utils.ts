@@ -1,6 +1,4 @@
-import { UserProfile } from '@auth0/nextjs-auth0/client';
-
-export function isAdmin(user: UserProfile | undefined): boolean {
+export function isAdmin(user: Record<string, unknown> | undefined): boolean {
   if (!user) return false;
   
   // Check the FantasyPlayoffs namespace (shared Auth0 app)

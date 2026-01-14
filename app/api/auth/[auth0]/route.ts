@@ -1,5 +1,11 @@
-import { handleAuth } from '@auth0/nextjs-auth0';
+import { auth0 } from '@/app/lib/auth0';
 
-export const GET = handleAuth();
+export async function GET(request: Request) {
+  return auth0.middleware(request);
+}
+
+export async function POST(request: Request) {
+  return auth0.middleware(request);
+}
 
 export const dynamic = 'force-dynamic';
