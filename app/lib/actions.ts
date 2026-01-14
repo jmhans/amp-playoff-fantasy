@@ -115,9 +115,15 @@ export async function claimParticipantAccount(participantId: number, auth0Id: st
   }
 }
 
-export async function getRosterEntries(participantId: number) {
+export async function getRosterEntries(participantId: number, seasonId?: number) {
   try {
     const { players } = await import('@/app/lib/db/schema');
+    
+    // Build where conditions
+    const conditions = [eq(rosterEntries.participantId, participantId)];
+    if (seasonId !== undefined) {
+      conditions.push(eq(rosterEntries.seasonId, seasonId));
+    }
     
     const entries = await db
       .select({
@@ -139,7 +145,7 @@ export async function getRosterEntries(participantId: number) {
       })
       .from(rosterEntries)
       .leftJoin(players, eq(rosterEntries.playerId, players.id))
-      .where(eq(rosterEntries.participantId, participantId));
+      .where(and(...conditions));
     
     return entries;
   } catch (error) {
