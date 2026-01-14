@@ -84,9 +84,6 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
               Status
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-              Action
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Picks
             </th>
           </tr>
@@ -119,19 +116,12 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-900 dark:text-white">
                   {getTotalScore(participant.id) || '-'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {isClaimed ? (
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                       Claimed
                     </span>
                   ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                      Available
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {!isClaimed && (
                     <button
                       onClick={() => handleClaim(participant.id)}
                       disabled={claimingId === participant.id}
@@ -142,14 +132,12 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {isClaimed && (
-                    <a
-                      href={`/picks/${participant.id}`}
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      View Picks
-                    </a>
-                  )}
+                  <a
+                    href={`/picks/${participant.id}`}
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    View Picks
+                  </a>
                 </td>
               </tr>
             );
