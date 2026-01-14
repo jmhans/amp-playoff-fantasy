@@ -189,10 +189,11 @@ export async function POST(request: NextRequest) {
               }
 
               // Parse stats based on category
+              // Labels: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
               const stats = athlete.stats || [];
               if (categoryName === 'passing') {
-                statsData.passingYards = parseInt(stats[5] || '0'); // Passing yards
-                statsData.passingTDs = parseInt(stats[2] || '0'); // Passing TDs
+                statsData.passingYards = parseInt(stats[1] || '0'); // Index 1 = Passing yards
+                statsData.passingTDs = parseInt(stats[3] || '0'); // Index 3 = Passing TDs
                 // 2pt conversions are harder to parse from ESPN, may need different approach
               } else if (categoryName === 'rushing') {
                 statsData.rushingYards = parseInt(stats[1] || '0'); // Rushing yards
