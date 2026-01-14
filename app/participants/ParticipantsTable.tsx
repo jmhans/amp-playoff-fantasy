@@ -11,15 +11,33 @@ interface Participant {
   auth0Id: string | null;
 }
 
+interface Score {
+  participantId: number;
+  week: number;
+  totalPoints: number;
+}
+
 interface ParticipantsTableProps {
   participants: Participant[];
   userAuth0Id: string;
   userHasClaimed: boolean;
+  scores: Score[];
 }
 
-export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed }: ParticipantsTableProps) {
+export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed, scores }: ParticipantsTableProps) {
   const router = useRouter();
   const [claimingId, setClaimingId] = useState<number | null>(null);
+
+  const getWeekScore = (participantId: number, week: number) => {
+    const score = scores.find(s => s.participantId === participantId && s.week === week);
+    return score?.totalPoints || 0;
+  };
+
+  const getTotalScore = (participantId: number) => {
+    return scores
+      .filter(s => s.participantId === participantId)
+      .reduce((sum, s) => sum + s.totalPoints, 0);
+  };
 
   const handleClaim = async (participantId: number) => {
     setClaimingId(participantId);
@@ -47,6 +65,21 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Name
             </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              WK1
+            </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              WK2
+            </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              WK3
+            </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              WK4
+            </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider font-bold">
+              Total
+            </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Status
             </th>
@@ -70,6 +103,21 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                   {isClaimedByUser && (
                     <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(You)</span>
                   )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
+                  {getWeekScore(participant.id, 1) || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
+                  {getWeekScore(participant.id, 2) || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
+                  {getWeekScore(participant.id, 3) || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
+                  {getWeekScore(participant.id, 4) || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-900 dark:text-white">
+                  {getTotalScore(participant.id) || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {isClaimed ? (

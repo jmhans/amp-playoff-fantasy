@@ -44,6 +44,9 @@ export const games = ampPlayoffsSchema.table('games', {
   homeTeam: text('home_team').notNull(),
   awayTeam: text('away_team').notNull(),
   spread: real('spread'), // Spread applied to home team (positive = home favored)
+  homeScore: integer('home_score'), // Final home team score
+  awayScore: integer('away_score'), // Final away team score
+  status: text('status'), // Game status from ESPN (e.g., 'STATUS_IN_PROGRESS', 'STATUS_FINAL')
   espnGameId: text('espn_game_id').unique(),
   gameTime: timestamp('game_time'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -69,6 +72,38 @@ export const rosterEntries = ampPlayoffsSchema.table('roster_entries', {
     .references(() => games.id, { onDelete: 'cascade' }),
   pickedTeam: text('picked_team'), // For TEAM position: which team was picked (home or away)
   pickedSpread: real('picked_spread'), // The spread at time of pick (positive = team favored)
+  fantasyPoints: real('fantasy_points'), // Calculated fantasy points for this entry
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Player game stats - stats for each player in each game
+export const playerGameStats = ampPlayoffsSchema.table('player_game_stats', {
+  id: serial('id').primaryKey(),
+  playerId: integer('player_id')
+    .references(() => players.id, { onDelete: 'cascade' }),
+  espnPlayerId: text('espn_player_id'), // ESPN player ID
+  gameId: integer('game_id')
+    .notNull()
+    .references(() => games.id, { onDelete: 'cascade' }),
+  seasonId: integer('season_id')
+    .notNull()
+    .references(() => seasons.id, { onDelete: 'cascade' }),
+  week: integer('week').notNull(),
+  // Passing stats
+  passingYards: integer('passing_yards').default(0),
+  passingTDs: integer('passing_tds').default(0),
+  passing2PtConversions: integer('passing_2pt_conversions').default(0),
+  // Rushing stats
+  rushingYards: integer('rushing_yards').default(0),
+  rushingTDs: integer('rushing_tds').default(0),
+  rushing2PtConversions: integer('rushing_2pt_conversions').default(0),
+  // Receiving stats
+  receivingYards: integer('receiving_yards').default(0),
+  receivingTDs: integer('receiving_tds').default(0),
+  receiving2PtConversions: integer('receiving_2pt_conversions').default(0),
+  // Calculated points
+  fantasyPoints: real('fantasy_points').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

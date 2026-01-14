@@ -1,5 +1,5 @@
 import { auth0 } from '@/app/lib/auth0';
-import { getParticipants, getParticipantByAuth0Id } from '@/app/lib/actions';
+import { getParticipants, getParticipantByAuth0Id, getAllParticipantsScores, getOrCreateActiveSeason } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
 import ParticipantsTable from './ParticipantsTable';
 import { lusitana } from '@/app/ui/fonts';
@@ -15,6 +15,8 @@ export default async function ParticipantsPage() {
 
   const participants = await getParticipants();
   const userParticipant = await getParticipantByAuth0Id(session.user.sub);
+  const season = await getOrCreateActiveSeason();
+  const scores = await getAllParticipantsScores(season.id);
 
   return (
     <main className="flex min-h-screen flex-col p-6 bg-white dark:bg-gray-900">
@@ -38,6 +40,7 @@ export default async function ParticipantsPage() {
         participants={participants}
         userAuth0Id={session.user.sub}
         userHasClaimed={!!userParticipant}
+        scores={scores}
       />
     </main>
   );
