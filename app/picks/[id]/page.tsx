@@ -15,7 +15,7 @@ export default async function PicksPage({ params }: Props) {
   const session = await auth0.getSession();
   
   if (!session?.user) {
-    redirect('/api/auth/login');
+    redirect('/auth/login');
   }
 
   const { id } = await params;
