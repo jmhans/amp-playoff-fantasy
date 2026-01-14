@@ -42,7 +42,7 @@ async function checkESPNStatsFormat() {
           console.log(`\n    Player: ${athleteName}`);
           console.log(`    Stats array:`, stats);
           console.log(`    Stats length: ${stats.length}`);
-          stats.forEach((stat, idx) => {
+          stats.forEach((stat: string, idx: number) => {
             console.log(`      [${idx}]: ${stat}`);
           });
         }

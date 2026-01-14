@@ -26,7 +26,7 @@ type FantasyStatLine = {
   receiving2PtConversions: number;
 };
 
-function mapExistingStats(row?: typeof playerGameStats.$inferSelect): FantasyStatLine {
+function mapExistingStats(row?: any): FantasyStatLine {
   return {
     passingYards: row?.passingYards ?? 0,
     passingTDs: row?.passingTDs ?? 0,
