@@ -103,7 +103,7 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           {sortedParticipants.map((participant) => {
-            const isClaimedByUser = participant.auth0Id === userAuth0Id;
+            const isClaimedByUser = userAuth0Id !== null && participant.auth0Id === userAuth0Id;
             const isClaimed = !!participant.auth0Id;
             
             return (
@@ -134,7 +134,7 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                       Claimed
                     </span>
-                  ) : (
+                  ) : userAuth0Id ? (
                     <button
                       onClick={() => handleClaim(participant.id)}
                       disabled={claimingId === participant.id}
@@ -142,6 +142,10 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                     >
                       {claimingId === participant.id ? 'Claiming...' : 'Claim'}
                     </button>
+                  ) : (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                      Available
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
