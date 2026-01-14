@@ -1,9 +1,10 @@
 import { auth0 } from '@/app/lib/auth0';
-import { getParticipantById } from '@/app/lib/actions';
+import { getParticipantById, getOrCreateActiveSeason, getWeekLockTimes } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
 import { lusitana } from '@/app/ui/fonts';
 import Link from 'next/link';
 import PicksGrid from './PicksGrid';
+import CountdownTimer from './CountdownTimer';
 
 interface Props {
   params: Promise<{
@@ -21,6 +22,8 @@ export default async function PicksPage({ params }: Props) {
   const { id } = await params;
   const participantId = parseInt(id);
   const participant = await getParticipantById(participantId);
+  const season = await getOrCreateActiveSeason();
+  const lockTimes = await getWeekLockTimes(season.id);
 
   if (!participant) {
     redirect('/participants');
@@ -61,7 +64,9 @@ export default async function PicksPage({ params }: Props) {
         </div>
       )}
 
-      <PicksGrid participantId={participantId} isOwner={isOwner} />
+      <CountdownTimer lockTimes={lockTimes} />
+
+      <PicksGrid participantId={participantId} seasonId={season.id} isOwner={isOwner} lockTimes={lockTimes} />
     </main>
   );
 }

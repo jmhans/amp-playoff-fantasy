@@ -34,6 +34,22 @@ export const seasons = ampPlayoffsSchema.table('seasons', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Games table - playoff games with spreads
+export const games = ampPlayoffsSchema.table('games', {
+  id: serial('id').primaryKey(),
+  seasonId: integer('season_id')
+    .notNull()
+    .references(() => seasons.id, { onDelete: 'cascade' }),
+  week: integer('week').notNull(),
+  homeTeam: text('home_team').notNull(),
+  awayTeam: text('away_team').notNull(),
+  spread: real('spread'), // Spread applied to home team (positive = home favored)
+  espnGameId: text('espn_game_id').unique(),
+  gameTime: timestamp('game_time'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Roster entries - each participant picks players for each position/week combination
 export const rosterEntries = ampPlayoffsSchema.table('roster_entries', {
   id: serial('id').primaryKey(),
@@ -49,6 +65,10 @@ export const rosterEntries = ampPlayoffsSchema.table('roster_entries', {
   position: text('position').notNull(),
   week: integer('week').notNull(),
   team: text('team'),
+  gameId: integer('game_id')
+    .references(() => games.id, { onDelete: 'cascade' }),
+  pickedTeam: text('picked_team'), // For TEAM position: which team was picked (home or away)
+  pickedSpread: real('picked_spread'), // The spread at time of pick (positive = team favored)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

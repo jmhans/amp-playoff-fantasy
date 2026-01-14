@@ -1,0 +1,1 @@
+ALTER TABLE "ampplayoffs"."roster_entries" ADD COLUMN "picked_spread" real;

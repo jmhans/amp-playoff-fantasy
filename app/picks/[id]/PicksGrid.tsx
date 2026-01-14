@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { getRosterEntries, updateRosterEntry, getEligiblePlayers, initializeRosterEntries } from '@/app/lib/actions';
 import PlayerPicker from './PlayerPicker';
+import TeamPicker from './TeamPicker';
+import Image from 'next/image';
 
 interface Player {
   id: number;
@@ -19,22 +21,28 @@ interface RosterEntry {
   playerName: string | null;
   playerId: number | null;
   player: Player | null;
+  gameId: number | null;
+  pickedTeam: string | null;
+  pickedSpread: number | null;
 }
 
 interface PicksGridProps {
   participantId: number;
+  seasonId: number;
   isOwner: boolean;
+  lockTimes: Array<{ week: number; lockTime: string | Date | null }>;
 }
 
 const POSITIONS = ['QB', 'RB', 'WR', 'FLEX', 'TEAM'];
 const WEEKS = [1, 2, 3, 4];
 
-export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
+export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes }: PicksGridProps) {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCell, setEditingCell] = useState<{ position: string; week: number } | null>(null);
   const [eligiblePlayers, setEligiblePlayers] = useState<Player[]>([]);
   const [showPicker, setShowPicker] = useState(false);
+  const [showTeamPicker, setShowTeamPicker] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -63,15 +71,25 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
     return entries.find(e => e.position === position && e.week === week);
   };
 
+  const isWeekLocked = (week: number): boolean => {
+    const weekLockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
+    if (!weekLockTime) return false;
+    return new Date() >= new Date(weekLockTime);
+  };
+
   const handleCellClick = async (position: string, week: number) => {
-    if (!isOwner) return;
+    if (!isOwner || isWeekLocked(week)) return;
     
     setEditingCell({ position, week });
     
-    // Load eligible players for this position
-    const players = await getEligiblePlayers(participantId, position);
-    setEligiblePlayers(players);
-    setShowPicker(true);
+    if (position === 'TEAM') {
+      setShowTeamPicker(true);
+    } else {
+      // Load eligible players for this position and week
+      const players = await getEligiblePlayers(participantId, position, seasonId, week);
+      setEligiblePlayers(players);
+      setShowPicker(true);
+    }
   };
 
   const handlePlayerSelect = async (player: Player | null) => {
@@ -113,8 +131,32 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
 
   const handleCancel = () => {
     setShowPicker(false);
+    setShowTeamPicker(false);
     setEditingCell(null);
     setEligiblePlayers([]);
+  };
+
+  const handleTeamSelect = async (gameId: number, team: string, spread: number | null) => {
+    if (!editingCell) return;
+
+    try {
+      const entry = getEntryForCell(editingCell.position, editingCell.week);
+      
+      if (entry) {
+        await updateRosterEntry(entry.id, null, team, gameId, team, spread);
+      }
+      
+      await loadEntries();
+      setShowTeamPicker(false);
+      setEditingCell(null);
+    } catch (error) {
+      console.error('Error saving team:', error);
+      alert('Failed to save team');
+    }
+  };
+
+  const getTeamLogoUrl = (team: string) => {
+    return `https://a.espncdn.com/i/teamlogos/nfl/500/${team}.png`;
   };
 
   const getPlayerImageUrl = (espnId?: string | null) => {
@@ -155,16 +197,47 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
                   const entry = getEntryForCell(position, week);
                   const player = entry?.player;
                   const imageUrl = player?.espnId ? getPlayerImageUrl(player.espnId) : null;
+                  const isTeamPosition = position === 'TEAM';
+                  const locked = isWeekLocked(week);
 
                   return (
                     <td
                       key={week}
                       className={`border border-gray-300 dark:border-gray-700 px-2 py-2 ${
-                        isOwner ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''
+                        locked 
+                          ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-75' 
+                          : isOwner 
+                            ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' 
+                            : ''
                       }`}
                       onClick={() => handleCellClick(position, week)}
+                      title={locked ? 'Week locked' : undefined}
                     >
-                      {entry?.playerName ? (
+                      {isTeamPosition && entry?.pickedTeam ? (
+                        <div className="flex flex-col items-center gap-2 min-h-[48px]">
+                          <div className="relative w-12 h-12">
+                            <Image
+                              src={getTeamLogoUrl(entry.pickedTeam)}
+                              alt={entry.pickedTeam}
+                              fill
+                              className="object-contain"
+                              unoptimized
+                            />
+                          </div>
+                          <div className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {entry.pickedTeam}
+                          </div>
+                          {entry.pickedSpread !== null && (
+                            <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                              {entry.pickedSpread === 0 
+                                ? 'PK' 
+                                : entry.pickedSpread > 0 
+                                  ? `+${entry.pickedSpread}` 
+                                  : entry.pickedSpread}
+                            </div>
+                          )}
+                        </div>
+                      ) : entry?.playerName ? (
                         <div className="flex items-center gap-2 min-h-[48px]">
                           {imageUrl && (
                             <img
@@ -207,6 +280,24 @@ export default function PicksGrid({ participantId, isOwner }: PicksGridProps) {
           onSelect={handlePlayerSelect}
           onCancel={handleCancel}
           currentPlayer={getEntryForCell(editingCell.position, editingCell.week)?.playerName || undefined}
+        />
+      )}
+
+      {showTeamPicker && editingCell && (
+        <TeamPicker
+          seasonId={seasonId}
+          week={editingCell.week}
+          currentSelection={
+            getEntryForCell(editingCell.position, editingCell.week)?.gameId && 
+            getEntryForCell(editingCell.position, editingCell.week)?.pickedTeam
+              ? {
+                  gameId: getEntryForCell(editingCell.position, editingCell.week)!.gameId!,
+                  pickedTeam: getEntryForCell(editingCell.position, editingCell.week)!.pickedTeam!,
+                }
+              : null
+          }
+          onSelect={handleTeamSelect}
+          onClose={handleCancel}
         />
       )}
     </>
