@@ -1,10 +1,18 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-config({ path: resolve(process.cwd(), '.env.local') });
-
-import { db } from '../app/lib/db';
-import { games, playerGameStats, rosterEntries, players } from '../app/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+
+// Load environment variables FIRST
+const result = config({ path: resolve(process.cwd(), '.env.local') });
+if (result.error) {
+  console.error('Error loading .env.local:', result.error);
+  process.exit(1);
+}
+
+if (!process.env.POSTGRES_URL) {
+  console.error('POSTGRES_URL not found in environment variables');
+  process.exit(1);
+}
 
 type FantasyStatLine = {
   passingYards: number;
@@ -18,7 +26,7 @@ type FantasyStatLine = {
   receiving2PtConversions: number;
 };
 
-function mapExistingStats(row?: typeof playerGameStats.$inferSelect): FantasyStatLine {
+function mapExistingStats(row?: any): FantasyStatLine {
   return {
     passingYards: row?.passingYards ?? 0,
     passingTDs: row?.passingTDs ?? 0,
@@ -81,6 +89,10 @@ function calculateTeamSpreadPoints(
 
 async function updateWeek1Stats() {
   console.log('Starting Week 1 stats update...\n');
+  
+  // Import db AFTER env vars are loaded
+  const { db } = await import('../app/lib/db');
+  const { games, playerGameStats, rosterEntries, players } = await import('../app/lib/db/schema');
   
   const seasonId = 1;
   const week = 1;
@@ -187,16 +199,19 @@ async function updateWeek1Stats() {
               }
               
               // Update stats based on category
+              // Passing Labels: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
+              // Rushing Labels: CAR, YDS, AVG, TD, LONG
+              // Receiving Labels: REC, YDS, AVG, TD, LONG
               if (categoryName === 'passing' && stats.length >= 3) {
-                playerStats.passingYards = parseInt(stats[2]) || 0; // YDS
-                playerStats.passingTDs = parseInt(stats[3]) || 0; // TD
+                playerStats.passingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
+                playerStats.passingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
                 // 2pt conversions not in standard stats
-              } else if (categoryName === 'rushing' && stats.length >= 2) {
-                playerStats.rushingYards = parseInt(stats[1]) || 0; // YDS
-                playerStats.rushingTDs = parseInt(stats[2]) || 0; // TD
-              } else if (categoryName === 'receiving' && stats.length >= 2) {
-                playerStats.receivingYards = parseInt(stats[1]) || 0; // YDS
-                playerStats.receivingTDs = parseInt(stats[2]) || 0; // TD
+              } else if (categoryName === 'rushing' && stats.length >= 3) {
+                playerStats.rushingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
+                playerStats.rushingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
+              } else if (categoryName === 'receiving' && stats.length >= 3) {
+                playerStats.receivingYards = parseInt(stats[1]) || 0; // Index 1 = YDS
+                playerStats.receivingTDs = parseInt(stats[3]) || 0; // Index 3 = TD
               }
               
               // Calculate fantasy points

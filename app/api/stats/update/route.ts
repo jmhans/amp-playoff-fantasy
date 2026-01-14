@@ -189,17 +189,20 @@ export async function POST(request: NextRequest) {
               }
 
               // Parse stats based on category
+              // Passing Labels: C/ATT, YDS, AVG, TD, INT, SACKS, QBR, RTG
+              // Rushing Labels: CAR, YDS, AVG, TD, LONG
+              // Receiving Labels: REC, YDS, AVG, TD, LONG
               const stats = athlete.stats || [];
               if (categoryName === 'passing') {
-                statsData.passingYards = parseInt(stats[5] || '0'); // Passing yards
-                statsData.passingTDs = parseInt(stats[2] || '0'); // Passing TDs
+                statsData.passingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
+                statsData.passingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
                 // 2pt conversions are harder to parse from ESPN, may need different approach
               } else if (categoryName === 'rushing') {
-                statsData.rushingYards = parseInt(stats[1] || '0'); // Rushing yards
-                statsData.rushingTDs = parseInt(stats[3] || '0'); // Rushing TDs
+                statsData.rushingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
+                statsData.rushingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
               } else if (categoryName === 'receiving') {
-                statsData.receivingYards = parseInt(stats[1] || '0'); // Receiving yards
-                statsData.receivingTDs = parseInt(stats[3] || '0'); // Receiving TDs
+                statsData.receivingYards = parseInt(stats[1] || '0'); // Index 1 = YDS
+                statsData.receivingTDs = parseInt(stats[3] || '0'); // Index 3 = TD
               }
 
               // Calculate fantasy points
