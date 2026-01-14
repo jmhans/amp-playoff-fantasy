@@ -132,6 +132,7 @@ export async function getRosterEntries(participantId: number) {
         gameId: rosterEntries.gameId,
         pickedTeam: rosterEntries.pickedTeam,
         pickedSpread: rosterEntries.pickedSpread,
+        fantasyPoints: rosterEntries.fantasyPoints,
         createdAt: rosterEntries.createdAt,
         updatedAt: rosterEntries.updatedAt,
         player: players,
@@ -314,5 +315,49 @@ export async function isWeekLocked(seasonId: number, week: number): Promise<bool
   } catch (error) {
     console.error('Failed to check week lock status:', error);
     return false;
+  }
+}
+
+export async function getParticipantWeeklyScores(participantId: number, seasonId: number) {
+  try {
+    const { sql, and } = await import('drizzle-orm');
+    
+    const weeklyTotals = await db
+      .select({
+        week: rosterEntries.week,
+        totalPoints: sql<number>`COALESCE(SUM(${rosterEntries.fantasyPoints}), 0)`,
+      })
+      .from(rosterEntries)
+      .where(and(
+        eq(rosterEntries.participantId, participantId),
+        eq(rosterEntries.seasonId, seasonId)
+      ))
+      .groupBy(rosterEntries.week);
+    
+    return weeklyTotals;
+  } catch (error) {
+    console.error('Failed to fetch weekly scores:', error);
+    return [];
+  }
+}
+
+export async function getAllParticipantsScores(seasonId: number) {
+  try {
+    const { sql } = await import('drizzle-orm');
+    
+    const scores = await db
+      .select({
+        participantId: rosterEntries.participantId,
+        week: rosterEntries.week,
+        totalPoints: sql<number>`COALESCE(SUM(${rosterEntries.fantasyPoints}), 0)`,
+      })
+      .from(rosterEntries)
+      .where(eq(rosterEntries.seasonId, seasonId))
+      .groupBy(rosterEntries.participantId, rosterEntries.week);
+    
+    return scores;
+  } catch (error) {
+    console.error('Failed to fetch all participant scores:', error);
+    return [];
   }
 }

@@ -24,6 +24,7 @@ interface RosterEntry {
   gameId: number | null;
   pickedTeam: string | null;
   pickedSpread: number | null;
+  fantasyPoints: number | null;
 }
 
 interface PicksGridProps {
@@ -236,6 +237,11 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes 
                                   : entry.pickedSpread}
                             </div>
                           )}
+                          {entry.fantasyPoints !== null && entry.fantasyPoints !== undefined && (
+                            <div className="text-sm font-bold text-green-600 dark:text-green-400 mt-1">
+                              {entry.fantasyPoints} pts
+                            </div>
+                          )}
                         </div>
                       ) : entry?.playerName ? (
                         <div className="flex items-center gap-2 min-h-[48px]">
@@ -256,6 +262,11 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes 
                             {player && (
                               <div className="text-xs text-gray-600 dark:text-gray-400">
                                 {player.position} - {player.team}
+                              </div>
+                            )}
+                            {entry.fantasyPoints !== null && entry.fantasyPoints !== undefined && (
+                              <div className="text-sm font-bold text-green-600 dark:text-green-400 mt-1">
+                                {entry.fantasyPoints} pts
                               </div>
                             )}
                           </div>

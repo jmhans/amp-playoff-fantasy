@@ -94,6 +94,28 @@ export default async function AdminPage() {
             </div>
           </div>
         </Link>
+
+        {/* Update Stats Card */}
+        <Link
+          href="/admin/stats"
+          className="group rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all hover:border-blue-500 hover:shadow-md"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <svg className="h-6 w-6" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-purple-600">
+                Update Stats
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Fetch live game stats
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </main>
   );
