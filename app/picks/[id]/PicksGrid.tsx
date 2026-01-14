@@ -32,12 +32,13 @@ interface PicksGridProps {
   seasonId: number;
   isOwner: boolean;
   lockTimes: Array<{ week: number; lockTime: string | Date | null }>;
+  isAdmin?: boolean;
 }
 
 const POSITIONS = ['QB', 'RB', 'WR', 'FLEX', 'TEAM'];
 const WEEKS = [1, 2, 3, 4];
 
-export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes }: PicksGridProps) {
+export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes, isAdmin = false }: PicksGridProps) {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCell, setEditingCell] = useState<{ position: string; week: number } | null>(null);
@@ -73,6 +74,9 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes 
   };
 
   const isWeekLocked = (week: number): boolean => {
+    // Admins can always edit regardless of lock time
+    if (isAdmin) return false;
+    
     const weekLockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
     if (!weekLockTime) return false;
     return new Date() >= new Date(weekLockTime);

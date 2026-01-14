@@ -5,6 +5,7 @@ import { lusitana } from '@/app/ui/fonts';
 import Link from 'next/link';
 import PicksGrid from './PicksGrid';
 import CountdownTimer from './CountdownTimer';
+import { isAdmin } from '@/app/lib/auth-utils';
 
 interface Props {
   params: Promise<{
@@ -29,8 +30,10 @@ export default async function PicksPage({ params }: Props) {
     redirect('/participants');
   }
 
-  // Check if user owns this participant
+  // Check if user owns this participant or is admin
   const isOwner = participant.auth0Id === session.user.sub;
+  const userIsAdmin = isAdmin(session.user);
+  const canEdit = isOwner || userIsAdmin;
 
   return (
     <main className="flex min-h-screen flex-col p-6 bg-white dark:bg-gray-900">
@@ -58,15 +61,21 @@ export default async function PicksPage({ params }: Props) {
         </h1>
       </div>
 
-      {!isOwner && (
+      {!canEdit && (
         <div className="mb-4 rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4 text-sm text-yellow-800 dark:text-yellow-200">
           You are viewing this roster in read-only mode.
         </div>
       )}
 
+      {userIsAdmin && !isOwner && (
+        <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-800 dark:text-blue-200">
+          You are viewing as admin and can edit this roster regardless of lock times.
+        </div>
+      )}
+
       <CountdownTimer lockTimes={lockTimes} />
 
-      <PicksGrid participantId={participantId} seasonId={season.id} isOwner={isOwner} lockTimes={lockTimes} />
+      <PicksGrid participantId={participantId} seasonId={season.id} isOwner={canEdit} lockTimes={lockTimes} isAdmin={userIsAdmin} />
     </main>
   );
 }

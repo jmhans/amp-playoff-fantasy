@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/app/lib/db';
-import { participants, rosterEntries, seasons } from '@/app/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { participants, rosterEntries, seasons, players, playerGameStats, games } from '@/app/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function getOrCreateActiveSeason() {
   try {
@@ -216,6 +216,152 @@ export async function getEligiblePlayers(participantId: number, position: string
   }
 }
 
+// Scoring rules
+function calculateFantasyPoints(stats: {
+  passingYards: number;
+  passingTDs: number;
+  passing2PtConversions: number;
+  rushingYards: number;
+  rushingTDs: number;
+  rushing2PtConversions: number;
+  receivingYards: number;
+  receivingTDs: number;
+  receiving2PtConversions: number;
+}): number {
+  let points = 0;
+  
+  // Passing: 1 pt per 25 yards (no fractional), 4 pts per TD, 1 pt per 2pt conversion
+  points += Math.floor(stats.passingYards / 25);
+  points += stats.passingTDs * 4;
+  points += stats.passing2PtConversions * 1;
+  
+  // Rushing: 1 pt per 10 yards (no fractional), 6 pts per TD, 2 pts per 2pt conversion
+  points += Math.floor(stats.rushingYards / 10);
+  points += stats.rushingTDs * 6;
+  points += stats.rushing2PtConversions * 2;
+  
+  // Receiving: 1 pt per 10 yards (no fractional), 6 pts per TD, 2 pts per 2pt conversion
+  points += Math.floor(stats.receivingYards / 10);
+  points += stats.receivingTDs * 6;
+  points += stats.receiving2PtConversions * 2;
+  
+  return points;
+}
+
+// Calculate team spread points
+function calculateTeamSpreadPoints(
+  pickedTeam: string,
+  homeTeam: string,
+  awayTeam: string,
+  homeScore: number,
+  awayScore: number,
+  pickedSpread: number
+): number {
+  const isHome = pickedTeam === homeTeam;
+  const teamScore = isHome ? homeScore : awayScore;
+  const opponentScore = isHome ? awayScore : homeScore;
+  
+  // Adjust score by spread (positive spread = favored)
+  const adjustedMargin = teamScore - opponentScore + pickedSpread;
+  
+  if (adjustedMargin > 0) {
+    return 4; // Beat the spread
+  } else if (adjustedMargin === 0) {
+    return 2; // Push
+  } else {
+    return 0; // Lost against spread
+  }
+}
+
+// Helper to recalculate fantasy points for a specific roster entry
+async function recalculateEntryFantasyPoints(entryId: number): Promise<boolean> {
+  try {
+    const entry = await db
+      .select()
+      .from(rosterEntries)
+      .where(eq(rosterEntries.id, entryId))
+      .limit(1);
+
+    if (!entry[0]) return false;
+
+    const rosterEntry = entry[0];
+
+    // Handle TEAM position
+    if (rosterEntry.position === 'TEAM') {
+      if (!rosterEntry.gameId || !rosterEntry.pickedTeam || rosterEntry.pickedSpread === null) {
+        return false;
+      }
+
+      const game = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, rosterEntry.gameId))
+        .limit(1);
+
+      if (!game[0] || game[0].homeScore === null || game[0].awayScore === null) {
+        return false; // Game not completed yet
+      }
+
+      const teamPoints = calculateTeamSpreadPoints(
+        rosterEntry.pickedTeam,
+        game[0].homeTeam,
+        game[0].awayTeam,
+        game[0].homeScore,
+        game[0].awayScore,
+        rosterEntry.pickedSpread
+      );
+
+      await db
+        .update(rosterEntries)
+        .set({
+          fantasyPoints: teamPoints,
+          updatedAt: new Date(),
+        })
+        .where(eq(rosterEntries.id, entryId));
+
+      return true;
+    }
+
+    // Handle player positions
+    if (!rosterEntry.playerId) return false;
+
+    const player = await db
+      .select()
+      .from(players)
+      .where(eq(players.id, rosterEntry.playerId))
+      .limit(1);
+
+    if (!player[0]?.espnId) return false;
+
+    const stats = await db
+      .select()
+      .from(playerGameStats)
+      .where(and(
+        eq(playerGameStats.espnPlayerId, player[0].espnId),
+        eq(playerGameStats.week, rosterEntry.week),
+        eq(playerGameStats.seasonId, rosterEntry.seasonId)
+      ))
+      .limit(1);
+
+    if (stats[0]) {
+      await db
+        .update(rosterEntries)
+        .set({
+          fantasyPoints: stats[0].fantasyPoints,
+          updatedAt: new Date(),
+        })
+        .where(eq(rosterEntries.id, entryId));
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error recalculating entry fantasy points:', error);
+    return false;
+  }
+}
+
 export async function updateRosterEntry(
   entryId: number, 
   playerId: number | null, 
@@ -227,6 +373,13 @@ export async function updateRosterEntry(
   try {
     console.log('updateRosterEntry called:', { entryId, playerId, playerName, gameId, pickedTeam, pickedSpread });
     
+    // Get the entry to check if the week is locked
+    const existingEntry = await db
+      .select()
+      .from(rosterEntries)
+      .where(eq(rosterEntries.id, entryId))
+      .limit(1);
+
     const result = await db
       .update(rosterEntries)
       .set({ 
@@ -241,6 +394,15 @@ export async function updateRosterEntry(
       .returning();
 
     console.log('Database update result:', result);
+
+    // If the week is locked (games started), recalculate fantasy points
+    if (existingEntry[0]) {
+      const weekLocked = await isWeekLocked(existingEntry[0].seasonId, existingEntry[0].week);
+      if (weekLocked) {
+        console.log('Week is locked, recalculating fantasy points...');
+        await recalculateEntryFantasyPoints(entryId);
+      }
+    }
 
     return { success: true };
   } catch (error) {
