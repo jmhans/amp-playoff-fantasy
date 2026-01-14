@@ -6,8 +6,7 @@ import { db } from '../app/lib/db';
 import { games, playerGameStats, rosterEntries, players } from '../app/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
-// Scoring rules
-function calculateFantasyPoints(stats: {
+type FantasyStatLine = {
   passingYards: number;
   passingTDs: number;
   passing2PtConversions: number;
@@ -17,7 +16,24 @@ function calculateFantasyPoints(stats: {
   receivingYards: number;
   receivingTDs: number;
   receiving2PtConversions: number;
-}): number {
+};
+
+function mapExistingStats(row?: typeof playerGameStats.$inferSelect): FantasyStatLine {
+  return {
+    passingYards: row?.passingYards ?? 0,
+    passingTDs: row?.passingTDs ?? 0,
+    passing2PtConversions: row?.passing2PtConversions ?? 0,
+    rushingYards: row?.rushingYards ?? 0,
+    rushingTDs: row?.rushingTDs ?? 0,
+    rushing2PtConversions: row?.rushing2PtConversions ?? 0,
+    receivingYards: row?.receivingYards ?? 0,
+    receivingTDs: row?.receivingTDs ?? 0,
+    receiving2PtConversions: row?.receiving2PtConversions ?? 0,
+  };
+}
+
+// Scoring rules
+function calculateFantasyPoints(stats: FantasyStatLine): number {
   let points = 0;
   
   // Passing: 1 pt per 25 yards (no fractional), 4 pts per TD, 1 pt per 2pt conversion
@@ -154,17 +170,7 @@ async function updateWeek1Stats() {
               }
               
               // Parse stats based on category
-              let playerStats = {
-                passingYards: 0,
-                passingTDs: 0,
-                passing2PtConversions: 0,
-                rushingYards: 0,
-                rushingTDs: 0,
-                rushing2PtConversions: 0,
-                receivingYards: 0,
-                receivingTDs: 0,
-                receiving2PtConversions: 0,
-              };
+              let playerStats: FantasyStatLine = mapExistingStats();
               
               // Get existing stats for this player/game if any
               const [existing] = await db
@@ -177,7 +183,7 @@ async function updateWeek1Stats() {
                 .limit(1);
               
               if (existing) {
-                playerStats = { ...existing };
+                playerStats = mapExistingStats(existing);
               }
               
               // Update stats based on category
@@ -206,6 +212,8 @@ async function updateWeek1Stats() {
                 await db.insert(playerGameStats).values({
                   playerId: dbPlayer.id,
                   gameId: game.id,
+                  seasonId,
+                  week,
                   ...playerStats,
                   fantasyPoints,
                 });
