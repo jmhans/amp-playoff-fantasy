@@ -529,3 +529,85 @@ export async function getAllParticipantsScores(seasonId: number) {
     return [];
   }
 }
+
+export async function getPlayerStatsForWeek(seasonId: number, week: number) {
+  try {
+    const { sql } = await import('drizzle-orm');
+    
+    // Get all unique players who were rostered for this week
+    const rosteredPlayers = await db
+      .select({
+        playerId: rosterEntries.playerId,
+        playerName: players.name,
+        position: players.position,
+        team: players.team,
+        rosterCount: sql<number>`COUNT(DISTINCT ${rosterEntries.participantId})`,
+      })
+      .from(rosterEntries)
+      .leftJoin(players, eq(rosterEntries.playerId, players.id))
+      .where(
+        and(
+          eq(rosterEntries.seasonId, seasonId),
+          eq(rosterEntries.week, week)
+        )
+      )
+      .groupBy(
+        rosterEntries.playerId,
+        players.name,
+        players.position,
+        players.team
+      );
+
+    // Filter out NULL player IDs and get stats for valid players
+    const playerIds = rosteredPlayers
+      .map(p => p.playerId)
+      .filter((id): id is number => id !== null);
+    
+    if (playerIds.length === 0) {
+      return [];
+    }
+
+    const { inArray } = await import('drizzle-orm');
+    
+    const stats = await db
+      .select()
+      .from(playerGameStats)
+      .where(
+        and(
+          eq(playerGameStats.seasonId, seasonId),
+          eq(playerGameStats.week, week),
+          inArray(playerGameStats.playerId, playerIds)
+        )
+      );
+
+    // Combine roster info with stats (filter out NULL player IDs)
+    const result = rosteredPlayers
+      .filter(player => player.playerId !== null)
+      .map(player => {
+        const playerStats = stats.find(s => s.playerId === player.playerId);
+        
+        return {
+          playerId: player.playerId!,
+          playerName: player.playerName || 'Unknown',
+          position: player.position || 'N/A',
+          team: player.team || 'N/A',
+          rosterCount: player.rosterCount,
+          passingYards: playerStats?.passingYards || null,
+          passingTDs: playerStats?.passingTDs || null,
+          passing2PtConversions: playerStats?.passing2PtConversions || null,
+          rushingYards: playerStats?.rushingYards || null,
+          rushingTDs: playerStats?.rushingTDs || null,
+          rushing2PtConversions: playerStats?.rushing2PtConversions || null,
+          receivingYards: playerStats?.receivingYards || null,
+          receivingTDs: playerStats?.receivingTDs || null,
+          receiving2PtConversions: playerStats?.receiving2PtConversions || null,
+          fantasyPoints: playerStats?.fantasyPoints || null,
+        };
+      });
+
+    return result;
+  } catch (error) {
+    console.error('Failed to fetch player stats for week:', error);
+    return [];
+  }
+}
