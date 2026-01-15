@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS "ampplayoffs";
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."games" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."games" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"season_id" integer NOT NULL,
 	"week" integer NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE "ampplayoffs"."games" (
 	CONSTRAINT "games_espn_game_id_unique" UNIQUE("espn_game_id")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."participants" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."participants" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"email" text,
@@ -23,7 +23,7 @@ CREATE TABLE "ampplayoffs"."participants" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."players" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."players" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"position" text NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE "ampplayoffs"."players" (
 	CONSTRAINT "players_sleeper_id_unique" UNIQUE("sleeper_id")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."roster_entries" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."roster_entries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"participant_id" integer NOT NULL,
 	"season_id" integer NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE "ampplayoffs"."roster_entries" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."seasons" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."seasons" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"year" integer NOT NULL,
 	"name" text NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE "ampplayoffs"."seasons" (
 	CONSTRAINT "seasons_year_unique" UNIQUE("year")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."weekly_actuals" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."weekly_actuals" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"player_id" integer NOT NULL,
 	"espn_id" text NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE "ampplayoffs"."weekly_actuals" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."weekly_scores" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."weekly_scores" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"roster_entry_id" integer NOT NULL,
 	"week" integer NOT NULL,
