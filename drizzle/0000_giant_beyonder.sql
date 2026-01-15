@@ -81,10 +81,44 @@ CREATE TABLE IF NOT EXISTS "ampplayoffs"."weekly_scores" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "ampplayoffs"."games" ADD CONSTRAINT "games_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_participant_id_participants_id_fk" FOREIGN KEY ("participant_id") REFERENCES "ampplayoffs"."participants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "ampplayoffs"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."weekly_actuals" ADD CONSTRAINT "weekly_actuals_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."weekly_scores" ADD CONSTRAINT "weekly_scores_roster_entry_id_roster_entries_id_fk" FOREIGN KEY ("roster_entry_id") REFERENCES "ampplayoffs"."roster_entries"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."games" ADD CONSTRAINT "games_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_participant_id_participants_id_fk" FOREIGN KEY ("participant_id") REFERENCES "ampplayoffs"."participants"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "ampplayoffs"."games"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."weekly_actuals" ADD CONSTRAINT "weekly_actuals_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."weekly_scores" ADD CONSTRAINT "weekly_scores_roster_entry_id_roster_entries_id_fk" FOREIGN KEY ("roster_entry_id") REFERENCES "ampplayoffs"."roster_entries"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
