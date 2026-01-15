@@ -115,6 +115,20 @@ export async function claimParticipantAccount(participantId: number, auth0Id: st
   }
 }
 
+export async function toggleHidePicksUntilLock(participantId: number, hidePicksUntilLock: boolean) {
+  try {
+    await db
+      .update(participants)
+      .set({ hidePicksUntilLock })
+      .where(eq(participants.id, participantId));
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update hide picks setting:', error);
+    return { success: false, error: 'Failed to update setting' };
+  }
+}
+
 export async function getRosterEntries(participantId: number, seasonId?: number) {
   try {
     const { players } = await import('@/app/lib/db/schema');

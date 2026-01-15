@@ -1,4 +1,4 @@
-CREATE SCHEMA "ampplayoffs";
+CREATE SCHEMA IF NOT EXISTS "ampplayoffs";
 --> statement-breakpoint
 CREATE TABLE "ampplayoffs"."games" (
 	"id" serial PRIMARY KEY NOT NULL,
