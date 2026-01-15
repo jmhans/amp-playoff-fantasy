@@ -21,6 +21,7 @@ export const participants = ampPlayoffsSchema.table('participants', {
   name: text('name').notNull(),
   email: text('email'),
   auth0Id: text('auth0_id'),
+  hidePicksUntilLock: boolean('hide_picks_until_lock').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

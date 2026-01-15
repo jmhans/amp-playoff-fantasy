@@ -2,8 +2,7 @@ import { auth0 } from '@/app/lib/auth0';
 import { getParticipantById, getOrCreateActiveSeason, getWeekLockTimes } from '@/app/lib/actions';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import PicksGrid from './PicksGrid';
-import CountdownTimer from './CountdownTimer';
+import PicksClientWrapper from './PicksClientWrapper';
 import { isAdmin } from '@/app/lib/auth-utils';
 
 interface Props {
@@ -59,21 +58,16 @@ export default async function PicksPage({ params }: Props) {
         </h2>
       </div>
 
-      {!canEdit && (
-        <div className="mb-4 rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4 text-sm text-yellow-800 dark:text-yellow-200">
-          You are viewing this roster in read-only mode.
-        </div>
-      )}
-
-      {userIsAdmin && !isOwner && (
-        <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-800 dark:text-blue-200">
-          You are viewing as admin and can edit this roster regardless of lock times.
-        </div>
-      )}
-
-      <CountdownTimer lockTimes={lockTimes} />
-
-      <PicksGrid participantId={participantId} seasonId={season.id} isOwner={canEdit} lockTimes={lockTimes} isAdmin={userIsAdmin} />
+      <PicksClientWrapper
+        participantId={participantId}
+        participantName={participant.name}
+        seasonId={season.id}
+        canEdit={canEdit}
+        isOwner={isOwner}
+        userIsAdmin={userIsAdmin}
+        lockTimes={lockTimes}
+        hidePicksUntilLock={participant.hidePicksUntilLock || false}
+      />
     </div>
   );
 }

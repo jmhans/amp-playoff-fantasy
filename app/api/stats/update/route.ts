@@ -3,6 +3,16 @@ import { db } from '@/app/lib/db';
 import { games, playerGameStats, rosterEntries, players } from '@/app/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
+// Helper function to calculate yardage points (handles negatives correctly)
+function calculateYardagePoints(yards: number, divisor: number): number {
+  if (yards >= 0) {
+    return Math.floor(yards / divisor);
+  } else {
+    // For negative yards: -1 to -9 = 0, -10 to -19 = -1, etc.
+    return Math.ceil(yards / divisor);
+  }
+}
+
 // Scoring rules
 function calculateFantasyPoints(stats: {
   passingYards: number;
@@ -18,17 +28,17 @@ function calculateFantasyPoints(stats: {
   let points = 0;
   
   // Passing: 1 pt per 25 yards (no fractional), 4 pts per TD, 1 pt per 2pt conversion
-  points += Math.floor(stats.passingYards / 25);
+  points += calculateYardagePoints(stats.passingYards, 25);
   points += stats.passingTDs * 4;
   points += stats.passing2PtConversions * 1;
   
   // Rushing: 1 pt per 10 yards (no fractional), 6 pts per TD, 2 pts per 2pt conversion
-  points += Math.floor(stats.rushingYards / 10);
+  points += calculateYardagePoints(stats.rushingYards, 10);
   points += stats.rushingTDs * 6;
   points += stats.rushing2PtConversions * 2;
   
   // Receiving: 1 pt per 10 yards (no fractional), 6 pts per TD, 2 pts per 2pt conversion
-  points += Math.floor(stats.receivingYards / 10);
+  points += calculateYardagePoints(stats.receivingYards, 10);
   points += stats.receivingTDs * 6;
   points += stats.receiving2PtConversions * 2;
   

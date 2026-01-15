@@ -33,18 +33,40 @@ interface PicksGridProps {
   isOwner: boolean;
   lockTimes: Array<{ week: number; lockTime: string | Date | null }>;
   isAdmin?: boolean;
+  hidePicksUntilLock?: boolean;
+  viewingAsOwner: boolean;
 }
 
 const POSITIONS = ['QB', 'RB', 'WR', 'FLEX', 'TEAM'];
 const WEEKS = [1, 2, 3, 4];
 
-export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes, isAdmin = false }: PicksGridProps) {
+export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes, isAdmin = false, hidePicksUntilLock = false, viewingAsOwner }: PicksGridProps) {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCell, setEditingCell] = useState<{ position: string; week: number } | null>(null);
   const [eligiblePlayers, setEligiblePlayers] = useState<Player[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
+
+  // Helper function to check if a week is locked
+  const isWeekLocked = (week: number): boolean => {
+    // Admins can always edit regardless of lock time
+    if (isAdmin) return false;
+    
+    const weekLockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
+    if (!weekLockTime) return false;
+    return new Date() >= new Date(weekLockTime);
+  };
+
+  // Helper function to check if picks should be hidden for this week
+  const shouldHideWeek = (week: number) => {
+    // Owner can always see their own picks
+    if (viewingAsOwner) return false;
+    // Admin can always see all picks
+    if (isAdmin) return false;
+    // If hiding is enabled and week is not locked, hide it
+    return hidePicksUntilLock && !isWeekLocked(week);
+  };
 
   useEffect(() => {
     loadEntries();
@@ -75,15 +97,6 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
 
   const getEntryForCell = (position: string, week: number) => {
     return entries.find(e => e.position === position && e.week === week);
-  };
-
-  const isWeekLocked = (week: number): boolean => {
-    // Admins can always edit regardless of lock time
-    if (isAdmin) return false;
-    
-    const weekLockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
-    if (!weekLockTime) return false;
-    return new Date() >= new Date(weekLockTime);
   };
 
   const handleCellClick = async (position: string, week: number) => {
@@ -211,6 +224,7 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
                   const imageUrl = player?.espnId ? getPlayerImageUrl(player.espnId) : null;
                   const isTeamPosition = position === 'TEAM';
                   const locked = isWeekLocked(week);
+                  const hideThisWeek = shouldHideWeek(week);
 
                   return (
                     <td
@@ -225,7 +239,26 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
                       onClick={() => handleCellClick(position, week)}
                       title={locked ? 'Week locked' : undefined}
                     >
-                      {isTeamPosition && entry?.pickedTeam ? (
+                      {hideThisWeek && (entry?.pickedTeam || entry?.playerName) ? (
+                        <div className="flex flex-col items-center justify-center gap-1 min-h-[48px] py-3">
+                          <svg
+                            className="w-8 h-8 text-gray-400 dark:text-gray-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                            />
+                          </svg>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                            Hidden
+                          </div>
+                        </div>
+                      ) : isTeamPosition && entry?.pickedTeam ? (
                         <div className="flex flex-col items-center gap-2 min-h-[48px]">
                           <div className="relative w-12 h-12">
                             <Image

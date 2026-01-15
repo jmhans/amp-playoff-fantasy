@@ -1,6 +1,6 @@
-CREATE SCHEMA "ampplayoffs";
+CREATE SCHEMA IF NOT EXISTS "ampplayoffs";
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."games" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."games" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"season_id" integer NOT NULL,
 	"week" integer NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE "ampplayoffs"."games" (
 	CONSTRAINT "games_espn_game_id_unique" UNIQUE("espn_game_id")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."participants" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."participants" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"email" text,
@@ -23,7 +23,7 @@ CREATE TABLE "ampplayoffs"."participants" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."players" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."players" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"position" text NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE "ampplayoffs"."players" (
 	CONSTRAINT "players_sleeper_id_unique" UNIQUE("sleeper_id")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."roster_entries" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."roster_entries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"participant_id" integer NOT NULL,
 	"season_id" integer NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE "ampplayoffs"."roster_entries" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."seasons" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."seasons" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"year" integer NOT NULL,
 	"name" text NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE "ampplayoffs"."seasons" (
 	CONSTRAINT "seasons_year_unique" UNIQUE("year")
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."weekly_actuals" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."weekly_actuals" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"player_id" integer NOT NULL,
 	"espn_id" text NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE "ampplayoffs"."weekly_actuals" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ampplayoffs"."weekly_scores" (
+CREATE TABLE IF NOT EXISTS "ampplayoffs"."weekly_scores" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"roster_entry_id" integer NOT NULL,
 	"week" integer NOT NULL,
@@ -81,10 +81,44 @@ CREATE TABLE "ampplayoffs"."weekly_scores" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "ampplayoffs"."games" ADD CONSTRAINT "games_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_participant_id_participants_id_fk" FOREIGN KEY ("participant_id") REFERENCES "ampplayoffs"."participants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "ampplayoffs"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."weekly_actuals" ADD CONSTRAINT "weekly_actuals_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ampplayoffs"."weekly_scores" ADD CONSTRAINT "weekly_scores_roster_entry_id_roster_entries_id_fk" FOREIGN KEY ("roster_entry_id") REFERENCES "ampplayoffs"."roster_entries"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."games" ADD CONSTRAINT "games_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_participant_id_participants_id_fk" FOREIGN KEY ("participant_id") REFERENCES "ampplayoffs"."participants"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "ampplayoffs"."seasons"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."roster_entries" ADD CONSTRAINT "roster_entries_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "ampplayoffs"."games"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."weekly_actuals" ADD CONSTRAINT "weekly_actuals_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "ampplayoffs"."players"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "ampplayoffs"."weekly_scores" ADD CONSTRAINT "weekly_scores_roster_entry_id_roster_entries_id_fk" FOREIGN KEY ("roster_entry_id") REFERENCES "ampplayoffs"."roster_entries"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
