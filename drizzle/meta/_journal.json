@@ -15,6 +15,20 @@
       "when": 1768364259973,
       "tag": "0001_first_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768380000000,
+      "tag": "0002_add_hide_picks",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768380100000,
+      "tag": "0003_update_hide_picks_default",
+      "breakpoints": true
     }
   ]
 }
