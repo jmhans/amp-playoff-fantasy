@@ -8,6 +8,7 @@ interface Player {
   position: string;
   team: string;
   espnId?: string | null;
+  projectedFantasyPoints?: number | null;
 }
 
 interface PlayerPickerProps {
@@ -24,20 +25,30 @@ export default function PlayerPicker({
   currentPlayer 
 }: PlayerPickerProps) {
   console.log('PlayerPicker rendered with', eligiblePlayers.length, 'players');
+  console.log('First player data sample:', eligiblePlayers[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPlayers, setFilteredPlayers] = useState(eligiblePlayers);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      let filtered = eligiblePlayers;
+      
+      // Filter by search term
       if (searchTerm) {
-        const filtered = eligiblePlayers.filter(player =>
+        filtered = eligiblePlayers.filter(player =>
           player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           player.team.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        setFilteredPlayers(filtered);
-      } else {
-        setFilteredPlayers(eligiblePlayers);
       }
+      
+      // Sort by projected points (descending), players without projections go to the end
+      filtered = filtered.sort((a, b) => {
+        const aProj = a.projectedFantasyPoints ?? -1;
+        const bProj = b.projectedFantasyPoints ?? -1;
+        return bProj - aProj;
+      });
+      
+      setFilteredPlayers(filtered);
     }, 0);
     return () => clearTimeout(timeoutId);
   }, [searchTerm, eligiblePlayers]);
@@ -113,6 +124,11 @@ export default function PlayerPicker({
                         <p className="text-sm text-gray-600">
                           {player.position} - {player.team}
                         </p>
+                        {player.projectedFantasyPoints && (
+                          <p className="text-xs text-blue-600 font-medium mt-1">
+                            Proj: {player.projectedFantasyPoints.toFixed(1)} pts
+                          </p>
+                        )}
                       </div>
                       {imageUrl && (
                         <img

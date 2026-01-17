@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/db';
-import { games, playerGameStats, rosterEntries, players } from '@/app/lib/db/schema';
+import { games, playerGameStats, rosterEntries, players, systemSettings } from '@/app/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // Helper function to calculate yardage points (handles negatives correctly)
@@ -71,6 +71,7 @@ function calculateTeamSpreadPoints(
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const { seasonId, week } = await request.json();
     
@@ -78,7 +79,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing seasonId or week' }, { status: 400 });
     }
 
+    console.log(`[Stats Update] Starting update for Season ${seasonId}, Week ${week}`);
+
     // Get games for this week
+    const gamesStart = Date.now();
     const weekGames = await db
       .select()
       .from(games)
@@ -86,6 +90,7 @@ export async function POST(request: NextRequest) {
         eq(games.seasonId, seasonId),
         eq(games.week, week)
       ));
+    console.log(`[Stats Update] ✓ Fetched ${weekGames.length} games (${Date.now() - gamesStart}ms)`);
 
     if (weekGames.length === 0) {
       return NextResponse.json({ error: 'No games found' }, { status: 404 });
@@ -97,11 +102,16 @@ export async function POST(request: NextRequest) {
     // Process each game
     for (const game of weekGames) {
       if (!game.espnGameId) continue;
+      
+      const gameStart = Date.now();
+      console.log(`[Stats Update] Processing game ${game.espnGameId}...`);
 
       // Fetch game data from ESPN
+      const fetchStart = Date.now();
       const response = await fetch(
         `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${game.espnGameId}`
       );
+      console.log(`[Stats Update]   - ESPN API fetch: ${Date.now() - fetchStart}ms`);
 
       if (!response.ok) {
         console.error(`Failed to fetch game ${game.espnGameId}`);
@@ -288,9 +298,13 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+      
+      console.log(`[Stats Update]   - Game ${game.espnGameId} complete: ${updatedPlayers} players updated (${Date.now() - gameStart}ms)`);
     }
 
     // Update roster entry fantasy points for players
+    const rosterUpdateStart = Date.now();
+    console.log(`[Stats Update] Updating roster entries...`);
     const weekGamesIds = weekGames.map(g => g.id);
     const entriesWithPlayers = await db
       .select()
@@ -370,12 +384,34 @@ export async function POST(request: NextRequest) {
 
       updatedTeams++;
     }
+    
+    console.log(`[Stats Update] ✓ Roster entries updated (${Date.now() - rosterUpdateStart}ms)`);
+    
+    // Update last stats refresh timestamp
+    await db
+      .insert(systemSettings)
+      .values({
+        key: 'last_stats_update',
+        value: new Date().toISOString(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: {
+          value: new Date().toISOString(),
+          updatedAt: new Date(),
+        },
+      });
+    
+    console.log(`[Stats Update] === COMPLETE === Total time: ${Date.now() - startTime}ms`);
 
     return NextResponse.json({
       success: true,
       updatedPlayers,
       updatedTeams,
       gamesProcessed: weekGames.length,
+      timeMs: Date.now() - startTime,
+      lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error updating stats:', error);

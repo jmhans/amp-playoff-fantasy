@@ -19,33 +19,8 @@ export default function Header() {
         </h1>
       </Link>
       
-      {/* Desktop Navigation */}
-      <div className="hidden md:flex gap-2 items-center">
-        <Link
-          href="/participants"
-          className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          Participants
-        </Link>
-        <Link
-          href="/stats"
-          className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          Player Stats
-        </Link>
-        {user && isAdmin(user) && (
-          <Link
-            href="/admin"
-            className="flex h-10 items-center rounded-lg bg-orange-600 px-4 text-sm font-medium text-white transition-colors hover:bg-orange-700"
-          >
-            Admin
-          </Link>
-        )}
-        <UserDisplay />
-      </div>
-
-      {/* Mobile Navigation */}
-      <div className="md:hidden flex items-center gap-2">
+      {/* Navigation - Same for all screens */}
+      <div className="flex items-center gap-2">
         <UserDisplay />
         <div className="relative">
           <button

@@ -17,20 +17,92 @@ interface Score {
   totalPoints: number;
 }
 
+interface PickStatus {
+  participantId: number;
+  week: number;
+  completedPicks: number;
+  totalPicks: number;
+}
+
+interface LockTime {
+  week: number;
+  lockTime: string | Date | null;
+}
+
 interface ParticipantsTableProps {
   participants: Participant[];
   userAuth0Id: string | null;
   userHasClaimed: boolean;
   scores: Score[];
+  pickStatus: PickStatus[];
+  lockTimes: LockTime[];
 }
 
-export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed, scores }: ParticipantsTableProps) {
+export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed, scores, pickStatus, lockTimes }: ParticipantsTableProps) {
   const router = useRouter();
   const [claimingId, setClaimingId] = useState<number | null>(null);
+  const [sortColumn, setSortColumn] = useState<'week1' | 'week2' | 'week3' | 'week4' | 'total'>('total');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (column: 'week1' | 'week2' | 'week3' | 'week4' | 'total') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const isWeekLocked = (week: number) => {
+    const lockTime = lockTimes.find(lt => lt.week === week)?.lockTime;
+    if (!lockTime) return false;
+    return new Date(lockTime) <= new Date();
+  };
 
   const getWeekScore = (participantId: number, week: number) => {
     const score = scores.find(s => s.participantId === participantId && s.week === week);
     return score?.totalPoints || 0;
+  };
+
+  const getPickStatus = (participantId: number, week: number) => {
+    const status = pickStatus.find(s => s.participantId === participantId && s.week === week);
+    return status || { completedPicks: 0, totalPicks: 5 };
+  };
+
+  const getWeekDisplay = (participantId: number, week: number) => {
+    if (isWeekLocked(week)) {
+      const score = getWeekScore(participantId, week);
+      return score > 0 ? score.toString() : '-';
+    } else {
+      const status = getPickStatus(participantId, week);
+      return `${status.completedPicks}/${status.totalPicks}`;
+    }
+  };
+
+  const getCurrentWeek = () => {
+    // Find the first unlocked week
+    for (let week = 1; week <= 4; week++) {
+      if (!isWeekLocked(week)) {
+        return week;
+      }
+    }
+    return null; // All weeks locked
+  };
+
+  const getWeekCellClass = (participantId: number, week: number) => {
+    const currentWeek = getCurrentWeek();
+    if (currentWeek !== week || isWeekLocked(week)) {
+      return "px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white";
+    }
+    
+    const status = getPickStatus(participantId, week);
+    const isComplete = status.completedPicks === status.totalPicks;
+    
+    if (isComplete) {
+      return "px-6 py-4 whitespace-nowrap text-sm text-center font-semibold text-green-700 dark:text-green-400";
+    } else {
+      return "px-6 py-4 whitespace-nowrap text-sm text-center font-semibold text-red-700 dark:text-red-400";
+    }
   };
 
   const getTotalScore = (participantId: number) => {
@@ -65,9 +137,19 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
 
   // Sort participants by total score descending
   const sortedParticipants = [...participants].sort((a, b) => {
-    const totalA = getTotalScore(a.id);
-    const totalB = getTotalScore(b.id);
-    return totalB - totalA;
+    let valueA: number;
+    let valueB: number;
+
+    if (sortColumn === 'total') {
+      valueA = getTotalScore(a.id);
+      valueB = getTotalScore(b.id);
+    } else {
+      const week = parseInt(sortColumn.replace('week', ''));
+      valueA = getWeekScore(a.id, week);
+      valueB = getWeekScore(b.id, week);
+    }
+
+    return sortDirection === 'desc' ? valueB - valueA : valueA - valueB;
   });
 
   return (
@@ -145,20 +227,70 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Name
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                WK1
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => handleSort('week1')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  WK1
+                  {sortColumn === 'week1' && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {sortDirection === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                WK2
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => handleSort('week2')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  WK2
+                  {sortColumn === 'week2' && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {sortDirection === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                WK3
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => handleSort('week3')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  WK3
+                  {sortColumn === 'week3' && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {sortDirection === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                WK4
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => handleSort('week4')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  WK4
+                  {sortColumn === 'week4' && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {sortDirection === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider font-bold">
-                Total
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider font-bold cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => handleSort('total')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  Total
+                  {sortColumn === 'total' && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {sortDirection === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
@@ -181,17 +313,17 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                       <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(You)</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                    {getWeekScore(participant.id, 1) || '-'}
+                  <td className={getWeekCellClass(participant.id, 1)}>
+                    {getWeekDisplay(participant.id, 1)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                    {getWeekScore(participant.id, 2) || '-'}
+                  <td className={getWeekCellClass(participant.id, 2)}>
+                    {getWeekDisplay(participant.id, 2)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                    {getWeekScore(participant.id, 3) || '-'}
+                  <td className={getWeekCellClass(participant.id, 3)}>
+                    {getWeekDisplay(participant.id, 3)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                    {getWeekScore(participant.id, 4) || '-'}
+                  <td className={getWeekCellClass(participant.id, 4)}>
+                    {getWeekDisplay(participant.id, 4)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-900 dark:text-white">
                     {getTotalScore(participant.id) || '-'}

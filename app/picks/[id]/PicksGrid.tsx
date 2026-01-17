@@ -12,6 +12,7 @@ interface Player {
   position: string;
   team: string;
   espnId?: string | null;
+  projectedFantasyPoints?: number | null;
 }
 
 interface RosterEntry {

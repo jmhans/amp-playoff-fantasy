@@ -11,6 +11,7 @@ export const players = ampPlayoffsSchema.table('players', {
   team: text('team').notNull(),
   espnId: text('espn_id').unique(),
   sleeperId: text('sleeper_id').unique(),
+  projectedFantasyPoints: real('projected_fantasy_points'), // Average from regular season
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -133,5 +134,13 @@ export const weeklyActuals = ampPlayoffsSchema.table('weekly_actuals', {
   fantasyPoints: real('fantasy_points').notNull(),
   stats: json('stats'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// System settings for tracking metadata
+export const systemSettings = ampPlayoffsSchema.table('system_settings', {
+  id: serial('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  value: text('value'),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

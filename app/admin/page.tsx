@@ -116,6 +116,28 @@ export default async function AdminPage() {
             </div>
           </div>
         </Link>
+
+        {/* Manage Projections Card */}
+        <Link
+          href="/admin/projections"
+          className="group rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all hover:border-blue-500 hover:shadow-md"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <svg className="h-6 w-6" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-orange-600">
+                Manage Projections
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Upload weekly projections
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </main>
   );
