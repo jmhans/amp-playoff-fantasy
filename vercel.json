@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/update-stats",
-      "schedule": "*/15 13-23 * 1 6,0"
+      "schedule": "0 6 * 1 6,0"
     }
   ]
 }
