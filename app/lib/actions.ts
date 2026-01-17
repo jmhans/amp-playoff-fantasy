@@ -625,3 +625,54 @@ export async function getPlayerStatsForWeek(seasonId: number, week: number) {
     return [];
   }
 }
+
+export async function getPickCompletionStatus(seasonId: number) {
+  try {
+    const { sql, count } = await import('drizzle-orm');
+    const TOTAL_PICKS = 5; // QB, RB, WR, FLEX, TEAM
+    
+    // Get all roster entries for the season with non-empty picks in a single query
+    const result = await db
+      .select({
+        participantId: rosterEntries.participantId,
+        week: rosterEntries.week,
+        completedPicks: count(),
+      })
+      .from(rosterEntries)
+      .where(
+        and(
+          eq(rosterEntries.seasonId, seasonId),
+          sql`(
+            (${rosterEntries.playerName} IS NOT NULL AND TRIM(${rosterEntries.playerName}) != '') 
+            OR 
+            (${rosterEntries.pickedTeam} IS NOT NULL AND TRIM(${rosterEntries.pickedTeam}) != '')
+          )`
+        )
+      )
+      .groupBy(rosterEntries.participantId, rosterEntries.week);
+    
+    // Create a complete grid for all participants and weeks (1-4)
+    const allParticipants = await db.select({ id: participants.id }).from(participants);
+    const WEEKS = [1, 2, 3, 4];
+    
+    const completeResult = [];
+    for (const participant of allParticipants) {
+      for (const week of WEEKS) {
+        const entry = result.find(
+          r => r.participantId === participant.id && r.week === week
+        );
+        completeResult.push({
+          participantId: participant.id,
+          week,
+          completedPicks: entry?.completedPicks || 0,
+          totalPicks: TOTAL_PICKS,
+        });
+      }
+    }
+    
+    return completeResult;
+  } catch (error) {
+    console.error('Failed to fetch pick completion status:', error);
+    return [];
+  }
+}

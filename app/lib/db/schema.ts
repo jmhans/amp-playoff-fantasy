@@ -11,6 +11,7 @@ export const players = ampPlayoffsSchema.table('players', {
   team: text('team').notNull(),
   espnId: text('espn_id').unique(),
   sleeperId: text('sleeper_id').unique(),
+  projectedFantasyPoints: real('projected_fantasy_points'), // Average from regular season
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
