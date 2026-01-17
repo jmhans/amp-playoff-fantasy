@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/db';
-import { games, playerGameStats, rosterEntries, players } from '@/app/lib/db/schema';
+import { games, playerGameStats, rosterEntries, players, systemSettings } from '@/app/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // Helper function to calculate yardage points (handles negatives correctly)
@@ -386,6 +386,23 @@ export async function POST(request: NextRequest) {
     }
     
     console.log(`[Stats Update] ✓ Roster entries updated (${Date.now() - rosterUpdateStart}ms)`);
+    
+    // Update last stats refresh timestamp
+    await db
+      .insert(systemSettings)
+      .values({
+        key: 'last_stats_update',
+        value: new Date().toISOString(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: {
+          value: new Date().toISOString(),
+          updatedAt: new Date(),
+        },
+      });
+    
     console.log(`[Stats Update] === COMPLETE === Total time: ${Date.now() - startTime}ms`);
 
     return NextResponse.json({
@@ -394,6 +411,7 @@ export async function POST(request: NextRequest) {
       updatedTeams,
       gamesProcessed: weekGames.length,
       timeMs: Date.now() - startTime,
+      lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error updating stats:', error);

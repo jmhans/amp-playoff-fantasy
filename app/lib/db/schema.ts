@@ -136,3 +136,11 @@ export const weeklyActuals = ampPlayoffsSchema.table('weekly_actuals', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// System settings for tracking metadata
+export const systemSettings = ampPlayoffsSchema.table('system_settings', {
+  id: serial('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  value: text('value'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

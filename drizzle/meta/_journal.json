@@ -36,6 +36,13 @@
       "when": 1768380200000,
       "tag": "0004_add_projected_fantasy_points",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768671800000,
+      "tag": "0005_add_system_settings",
+      "breakpoints": true
     }
   ]
 }
