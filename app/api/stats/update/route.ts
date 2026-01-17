@@ -365,6 +365,9 @@ export async function POST(request: NextRequest) {
       const game = weekGames.find(g => g.id === entry.gameId);
       if (!game || game.homeScore === null || game.awayScore === null) continue;
 
+      // Only calculate spread points if the game is final
+      if (game.status !== 'STATUS_FINAL' && game.status !== 'Final') continue;
+
       const teamPoints = calculateTeamSpreadPoints(
         entry.pickedTeam,
         game.homeTeam,
