@@ -98,13 +98,18 @@ export async function POST(request: NextRequest) {
 
     let updatedPlayers = 0;
     let updatedTeams = 0;
+    let skippedGames = 0;
 
     // Process each game
     for (const game of weekGames) {
-      if (!game.espnGameId) continue;
+      if (!game.espnGameId) {
+        console.warn(`[Stats Update] ⚠️  Game ${game.homeTeam} @ ${game.awayTeam} has no ESPN ID - skipping`);
+        skippedGames++;
+        continue;
+      }
       
       const gameStart = Date.now();
-      console.log(`[Stats Update] Processing game ${game.espnGameId}...`);
+      console.log(`[Stats Update] Processing game ${game.espnGameId} (${game.awayTeam} @ ${game.homeTeam})...`);
 
       // Fetch game data from ESPN
       const fetchStart = Date.now();
@@ -390,6 +395,11 @@ export async function POST(request: NextRequest) {
     
     console.log(`[Stats Update] ✓ Roster entries updated (${Date.now() - rosterUpdateStart}ms)`);
     
+    if (skippedGames > 0) {
+      console.warn(`[Stats Update] ⚠️  WARNING: ${skippedGames} games were skipped due to missing ESPN IDs`);
+      console.warn(`[Stats Update]    Please use Admin > Manage Spreads to reload Week ${week} games from ESPN`);
+    }
+    
     // Update last stats refresh timestamp
     await db
       .insert(systemSettings)
@@ -413,6 +423,7 @@ export async function POST(request: NextRequest) {
       updatedPlayers,
       updatedTeams,
       gamesProcessed: weekGames.length,
+      gamesSkipped: skippedGames,
       timeMs: Date.now() - startTime,
       lastUpdated: new Date().toISOString(),
     });

@@ -76,9 +76,17 @@ export default function StatsUpdater() {
                 <p className="font-semibold mb-2">Update Complete!</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Games processed: {result.gamesProcessed}</li>
+                  {result.gamesSkipped && result.gamesSkipped > 0 && (
+                    <li className="text-yellow-700 dark:text-yellow-400">⚠️ Games skipped (no ESPN ID): {result.gamesSkipped}</li>
+                  )}
                   <li>Player stats updated: {result.updatedPlayers}</li>
                   <li>Team picks updated: {result.updatedTeams}</li>
                 </ul>
+                {result.gamesSkipped && result.gamesSkipped > 0 && (
+                  <p className="mt-3 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
+                    💡 Tip: If games were skipped, use Admin → Manage Spreads to reload Week {week} games from ESPN
+                  </p>
+                )}
               </div>
             )}
           </div>

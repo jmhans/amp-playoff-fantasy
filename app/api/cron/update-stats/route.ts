@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
       .where(eq(games.seasonId, seasonId))
       .groupBy(games.week);
 
-    const weeks = allGames.map(g => g.week);
-    console.log(`[Cron] Found ${weeks.length} weeks to update`);
+    const weeks = allGames.map(g => g.week).sort((a, b) => a - b);
+    console.log(`[Cron] Found ${weeks.length} weeks with games: ${weeks.join(', ')}`);
 
     // Update stats for each week
     const results = [];
@@ -54,7 +54,12 @@ export async function GET(request: NextRequest) {
 
       const result = await response.json();
       results.push({ week, ...result });
-      console.log(`[Cron] Week ${week} complete:`, result);
+      
+      if (result.error) {
+        console.error(`[Cron] ❌ Week ${week} failed: ${result.error}`);
+      } else {
+        console.log(`[Cron] ✅ Week ${week}: ${result.updatedPlayers} players, ${result.updatedTeams} teams${result.gamesSkipped ? ` (${result.gamesSkipped} games skipped)` : ''}`);
+      }
     }
 
     console.log('[Cron] Scheduled stats update complete');

@@ -31,18 +31,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No active season' }, { status: 404 });
     }
 
-    // Fetch games from ESPN (playoff games are in weeks 18+)
-    const espnWeek = parseInt(week) + 17; // Convert playoff week to ESPN week
+    // Fetch games from ESPN (playoff games are in weeks 1-4 with seasontype=3)
     const response = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${activeSeason.year}&seasontype=3&week=${week}`
     );
+    
+    console.log(`[Spreads API] Fetching week ${week} from ESPN at: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${activeSeason.year}&seasontype=3&week=${week}`);
 
     if (!response.ok) {
-      throw new Error('Failed to fetch games from ESPN');
+      console.error(`[Spreads API] ESPN API returned ${response.status}`);
+      throw new Error(`Failed to fetch games from ESPN (status: ${response.status})`);
     }
 
     const data = await response.json();
     const espnGames = data.events || [];
+    
+    console.log(`[Spreads API] Found ${espnGames.length} games for week ${week}`);
 
     // Get existing games from database
     const existingGames = await db
@@ -105,12 +109,13 @@ export async function POST(request: NextRequest) {
       const { id, espnGameId, homeTeam, awayTeam, gameTime, spread } = gameData;
 
       if (id) {
-        // Update existing game
+        // Update existing game - preserve ESPN ID if not provided
         await db
           .update(games)
           .set({
             homeTeam,
             awayTeam,
+            espnGameId: espnGameId || undefined, // Only update if provided
             gameTime: new Date(gameTime),
             spread: spread ? parseFloat(spread) : null,
             updatedAt: new Date(),
@@ -118,19 +123,23 @@ export async function POST(request: NextRequest) {
           .where(eq(games.id, id));
       } else {
         // Insert new game
+        if (!espnGameId) {
+          console.warn(`[Spreads API] Warning: New game ${awayTeam} @ ${homeTeam} created without ESPN ID`);
+        }
         await db.insert(games).values({
           seasonId,
           week,
           homeTeam,
           awayTeam,
-          espnGameId,
+          espnGameId: espnGameId || null,
           gameTime: new Date(gameTime),
           spread: spread ? parseFloat(spread) : null,
         });
       }
     }
 
-    return NextResponse.json({ success: true });
+    console.log(`[Spreads API] ✅ Saved ${gamesData.length} games for week ${week}`);
+    return NextResponse.json({ success: true, gamesCount: gamesData.length });
   } catch (error) {
     console.error('Error saving spreads:', error);
     return NextResponse.json(
