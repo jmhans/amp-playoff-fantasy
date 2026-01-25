@@ -96,12 +96,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No games found' }, { status: 404 });
     }
 
+    // Build a set of rostered ESPN player IDs for this week to avoid processing the entire box score
+    const rosteredPlayersResult = await db
+      .select({ espnId: players.espnId })
+      .from(rosterEntries)
+      .innerJoin(players, eq(players.id, rosterEntries.playerId))
+      .where(and(
+        eq(rosterEntries.seasonId, seasonId),
+        eq(rosterEntries.week, week),
+        inArray(rosterEntries.position, ['QB', 'RB', 'WR', 'FLEX'])
+      ));
+
+    const rosteredPlayerIds = new Set(
+      rosteredPlayersResult
+        .map(r => r.espnId)
+        .filter((id): id is string => Boolean(id))
+    );
+
     let updatedPlayers = 0;
     let updatedTeams = 0;
     let skippedGames = 0;
 
     // Process each game
     for (const game of weekGames) {
+      const processedPlayers = new Set<string>();
+      let playersUpdatedThisGame = 0;
       if (!game.espnGameId) {
         console.warn(`[Stats Update] ⚠️  Game ${game.homeTeam} @ ${game.awayTeam} has no ESPN ID - skipping`);
         skippedGames++;
@@ -190,9 +209,14 @@ export async function POST(request: NextRequest) {
             
             for (const athlete of statCategory.athletes) {
               const espnPlayerId = athlete.athlete.id;
+
+              // Skip players that are not on any roster for this week to reduce noise and work
+              if (!rosteredPlayerIds.has(espnPlayerId)) {
+                continue;
+              }
               const athleteName = athlete.athlete.displayName;
               
-              // Find or create player in our database
+              // Find or create player in our database (rostered only)
               let player = await db
                 .select()
                 .from(players)
@@ -202,7 +226,7 @@ export async function POST(request: NextRequest) {
               let playerId = player[0]?.id;
 
               if (!playerId) {
-                // Player doesn't exist, create them
+                // Player doesn't exist, create them (should be rare because rostered players should already exist)
                 const newPlayer = await db
                   .insert(players)
                   .values({
@@ -298,13 +322,19 @@ export async function POST(request: NextRequest) {
                 });
               }
 
-              updatedPlayers++;
+              if (!processedPlayers.has(espnPlayerId)) {
+                processedPlayers.add(espnPlayerId);
+                updatedPlayers++;
+                playersUpdatedThisGame++;
+              }
             }
           }
         }
       }
       
-      console.log(`[Stats Update]   - Game ${game.espnGameId} complete: ${updatedPlayers} players updated (${Date.now() - gameStart}ms)`);
+      console.log(
+        `[Stats Update]   - Game ${game.espnGameId} complete: ${playersUpdatedThisGame} unique players updated (cumulative ${updatedPlayers}, ${Date.now() - gameStart}ms)`
+      );
     }
 
     // Update roster entry fantasy points for players

@@ -2,6 +2,7 @@ import { auth0 } from '@/app/lib/auth0';
 import { getParticipants, getParticipantByAuth0Id, getAllParticipantsScores, getOrCreateActiveSeason, getPickCompletionStatus, getWeekLockTimes } from '@/app/lib/actions';
 import ParticipantsTable from './ParticipantsTable';
 import StatsRefresh from '@/app/ui/StatsRefresh';
+import { isAdmin } from '@/app/lib/auth-utils';
 
 export default async function ParticipantsPage() {
   const session = await auth0.getSession();
@@ -9,6 +10,7 @@ export default async function ParticipantsPage() {
 
   const participants = await getParticipants();
   const userParticipant = isLoggedIn ? await getParticipantByAuth0Id(session.user.sub) : null;
+  const userIsAdmin = isLoggedIn ? isAdmin(session.user) : false;
   const season = await getOrCreateActiveSeason();
   const scores = await getAllParticipantsScores(season.id);
   const pickStatus = await getPickCompletionStatus(season.id);
@@ -22,7 +24,7 @@ export default async function ParticipantsPage() {
 
   return (
     <div className="space-y-6">
-      <StatsRefresh seasonId={season.id} week={currentWeek} />
+      <StatsRefresh seasonId={season.id} week={currentWeek} isAdmin={userIsAdmin} />
       
       <ParticipantsTable 
         participants={participants}
