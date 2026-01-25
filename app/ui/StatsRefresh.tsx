@@ -5,9 +5,10 @@ import { useState, useEffect } from 'react';
 interface StatsRefreshProps {
   seasonId: number;
   week: number;
+  isAdmin?: boolean;
 }
 
-export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
+export default function StatsRefresh({ seasonId, week, isAdmin = false }: StatsRefreshProps) {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [canRefresh, setCanRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,8 +48,10 @@ export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
         setTimeAgo(`${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`);
       }
 
-      // Update canRefresh based on time
-      setCanRefresh(diffMins >= 10);
+      // Update canRefresh based on time (admins can always refresh)
+      if (!isAdmin) {
+        setCanRefresh(diffMins >= 10);
+      }
     };
 
     updateTimeAgo();
@@ -63,7 +66,8 @@ export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
   }, []);
 
   const handleRefresh = async () => {
-    if (!canRefresh || isRefreshing) return;
+    if (isRefreshing) return;
+    if (!canRefresh && !isAdmin) return;
 
     setIsRefreshing(true);
     try {
@@ -77,7 +81,9 @@ export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
       
       if (data.success) {
         setLastUpdated(data.lastUpdated);
-        setCanRefresh(false);
+        if (!isAdmin) {
+          setCanRefresh(false);
+        }
         // Show success message (optional)
         alert(`Stats updated! ${data.updatedPlayers} players and ${data.updatedTeams} teams updated.`);
       } else {
@@ -104,9 +110,9 @@ export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
       
       <button
         onClick={handleRefresh}
-        disabled={!canRefresh || isRefreshing}
+        disabled={(!canRefresh && !isAdmin) || isRefreshing}
         className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-          canRefresh && !isRefreshing
+          (canRefresh || isAdmin) && !isRefreshing
             ? 'bg-blue-600 text-white hover:bg-blue-700'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
         }`}
@@ -124,7 +130,7 @@ export default function StatsRefresh({ seasonId, week }: StatsRefreshProps) {
         )}
       </button>
       
-      {!canRefresh && !isRefreshing && lastUpdated && (
+      {!isAdmin && !canRefresh && !isRefreshing && lastUpdated && (
         <div className="text-xs text-gray-500 dark:text-gray-400">
           (wait {Math.max(0, 10 - Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60)))} mins)
         </div>
