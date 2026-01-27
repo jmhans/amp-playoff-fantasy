@@ -337,51 +337,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update roster entry fantasy points for players
+    // Update roster entry fantasy points for players - use JOIN to avoid N+1 queries
     const rosterUpdateStart = Date.now();
     console.log(`[Stats Update] Updating roster entries...`);
-    const weekGamesIds = weekGames.map(g => g.id);
-    const entriesWithPlayers = await db
-      .select()
+    
+    // Get all player stats for this week at once
+    const weekPlayerStats = await db
+      .select({
+        espnPlayerId: playerGameStats.espnPlayerId,
+        fantasyPoints: playerGameStats.fantasyPoints,
+      })
+      .from(playerGameStats)
+      .where(and(
+        eq(playerGameStats.seasonId, seasonId),
+        eq(playerGameStats.week, week)
+      ));
+
+    // Get all roster entries with player info that need updating
+    const entriesWithPlayersAndStats = await db
+      .select({
+        id: rosterEntries.id,
+        espnId: players.espnId,
+      })
       .from(rosterEntries)
+      .innerJoin(players, eq(players.id, rosterEntries.playerId))
       .where(and(
         eq(rosterEntries.seasonId, seasonId),
         eq(rosterEntries.week, week),
         inArray(rosterEntries.position, ['QB', 'RB', 'WR', 'FLEX'])
       ));
 
-    for (const entry of entriesWithPlayers) {
-      if (!entry.playerId) continue;
-
-      // Find player's game this week
-      const player = await db
-        .select()
-        .from(players)
-        .where(eq(players.id, entry.playerId))
-        .limit(1);
-
-      if (!player[0]?.espnId) continue;
-
-      // Find their stats
-      const stats = await db
-        .select()
-        .from(playerGameStats)
-        .where(and(
-          eq(playerGameStats.espnPlayerId, player[0].espnId),
-          eq(playerGameStats.week, week),
-          eq(playerGameStats.seasonId, seasonId)
-        ))
-        .limit(1);
-
-      if (stats[0]) {
-        await db
-          .update(rosterEntries)
-          .set({
-            fantasyPoints: stats[0].fantasyPoints,
-            updatedAt: new Date(),
-          })
-          .where(eq(rosterEntries.id, entry.id));
+    // Build and execute batch update using CASE statement
+    if (entriesWithPlayersAndStats.length > 0 && weekPlayerStats.length > 0) {
+      const { sql: drizzleSql } = await import('drizzle-orm');
+      
+      // Create mapping of espnId to points
+      const statsByEspnId = new Map(weekPlayerStats.map(s => [s.espnPlayerId, s.fantasyPoints]));
+      
+      // Build CASE statement for all players
+      let caseSQL = 'CASE';
+      for (const [espnId, points] of statsByEspnId.entries()) {
+        caseSQL += ` WHEN players.espn_id = '${espnId}' THEN ${points}`;
       }
+      caseSQL += ' ELSE roster_entries.fantasy_points END';
+      
+      // Execute single batch update query with schema-qualified names
+      await db.execute(
+        drizzleSql`
+          UPDATE ampplayoffs.roster_entries
+          SET fantasy_points = ${drizzleSql.raw(caseSQL)},
+              updated_at = NOW()
+          FROM ampplayoffs.players
+          WHERE ampplayoffs.roster_entries.player_id = ampplayoffs.players.id
+            AND ampplayoffs.roster_entries.season_id = ${seasonId}
+            AND ampplayoffs.roster_entries.week = ${week}
+            AND ampplayoffs.roster_entries.position IN ('QB', 'RB', 'WR', 'FLEX')
+            AND ampplayoffs.players.espn_id IS NOT NULL
+        `
+      );
+      updatedPlayers = entriesWithPlayersAndStats.length;
     }
 
     // Update roster entry fantasy points for teams
@@ -401,7 +415,12 @@ export async function POST(request: NextRequest) {
       if (!game || game.homeScore === null || game.awayScore === null) continue;
 
       // Only calculate spread points if the game is final
-      if (game.status !== 'STATUS_FINAL' && game.status !== 'Final') continue;
+      // ESPN uses multiple status values for completed games
+      const isFinal = game.status === 'STATUS_FINAL' || 
+                      game.status === 'Final' || 
+                      game.status === 'final' ||
+                      (game.status && game.status.includes('FINAL'));
+      if (!isFinal) continue;
 
       const teamPoints = calculateTeamSpreadPoints(
         entry.pickedTeam,

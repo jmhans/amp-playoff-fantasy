@@ -24,7 +24,14 @@ export async function POST(request: NextRequest) {
       ));
 
     const nonFinalGameIds = weekGames
-      .filter(g => g.status !== 'STATUS_FINAL' && g.status !== 'Final')
+      .filter(g => {
+        // Check for various final status formats
+        const isFinal = g.status === 'STATUS_FINAL' || 
+                        g.status === 'Final' || 
+                        g.status === 'final' ||
+                        (g.status && g.status.includes('FINAL'));
+        return !isFinal;
+      })
       .map(g => g.id);
 
     if (nonFinalGameIds.length === 0) {
