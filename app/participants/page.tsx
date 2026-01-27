@@ -16,11 +16,14 @@ export default async function ParticipantsPage() {
   const pickStatus = await getPickCompletionStatus(season.id);
   const lockTimes = await getWeekLockTimes(season.id);
 
-  // Determine current week - find the first unlocked week, or the last week if all locked
+  // Determine current week for scoring updates
+  // Use the latest week that has locked (games started/in progress)
+  // If no weeks locked yet, use week 1. If all locked, use last week.
   const now = new Date();
-  const currentWeek = lockTimes.find(lt => lt.lockTime && new Date(lt.lockTime) > now)?.week 
-    || lockTimes[lockTimes.length - 1]?.week 
-    || 1;
+  const lockedWeeks = lockTimes.filter(lt => lt.lockTime && new Date(lt.lockTime) <= now);
+  const currentWeek = lockedWeeks.length > 0 
+    ? lockedWeeks[lockedWeeks.length - 1].week 
+    : 1;
 
   return (
     <div className="space-y-6">
