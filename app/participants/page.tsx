@@ -20,10 +20,14 @@ export default async function ParticipantsPage() {
   // Use the latest week that has locked (games started/in progress)
   // If no weeks locked yet, use week 1. If all locked, use last week.
   const now = new Date();
+  console.log('[Participants Page] Lock times:', lockTimes);
+  console.log('[Participants Page] Current time:', now);
   const lockedWeeks = lockTimes.filter(lt => lt.lockTime && new Date(lt.lockTime) <= now);
+  console.log('[Participants Page] Locked weeks:', lockedWeeks);
   const currentWeek = lockedWeeks.length > 0 
     ? lockedWeeks[lockedWeeks.length - 1].week 
     : 1;
+  console.log('[Participants Page] Current week for scoring:', currentWeek);
 
   return (
     <div className="space-y-6">
