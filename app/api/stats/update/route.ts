@@ -337,47 +337,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update roster entry fantasy points for players
+    // Update roster entry fantasy points for players - use JOIN to avoid N+1 queries
     const rosterUpdateStart = Date.now();
     console.log(`[Stats Update] Updating roster entries...`);
-    const weekGamesIds = weekGames.map(g => g.id);
-    const entriesWithPlayers = await db
-      .select()
+    
+    // Get all player stats for this week at once
+    const weekPlayerStats = await db
+      .select({
+        espnPlayerId: playerGameStats.espnPlayerId,
+        fantasyPoints: playerGameStats.fantasyPoints,
+      })
+      .from(playerGameStats)
+      .where(and(
+        eq(playerGameStats.seasonId, seasonId),
+        eq(playerGameStats.week, week)
+      ));
+
+    // Create a map for fast lookup
+    const statsMap = new Map(weekPlayerStats.map(s => [s.espnPlayerId, s.fantasyPoints]));
+
+    // Get all roster entries with player info in one query
+    const entriesWithPlayersAndStats = await db
+      .select({
+        id: rosterEntries.id,
+        espnId: players.espnId,
+      })
       .from(rosterEntries)
+      .innerJoin(players, eq(players.id, rosterEntries.playerId))
       .where(and(
         eq(rosterEntries.seasonId, seasonId),
         eq(rosterEntries.week, week),
         inArray(rosterEntries.position, ['QB', 'RB', 'WR', 'FLEX'])
       ));
 
-    for (const entry of entriesWithPlayers) {
-      if (!entry.playerId) continue;
+    // Update all player entries at once
+    for (const entry of entriesWithPlayersAndStats) {
+      if (!entry.espnId) continue;
 
-      // Find player's game this week
-      const player = await db
-        .select()
-        .from(players)
-        .where(eq(players.id, entry.playerId))
-        .limit(1);
-
-      if (!player[0]?.espnId) continue;
-
-      // Find their stats
-      const stats = await db
-        .select()
-        .from(playerGameStats)
-        .where(and(
-          eq(playerGameStats.espnPlayerId, player[0].espnId),
-          eq(playerGameStats.week, week),
-          eq(playerGameStats.seasonId, seasonId)
-        ))
-        .limit(1);
-
-      if (stats[0]) {
+      const fantasyPoints = statsMap.get(entry.espnId);
+      if (fantasyPoints !== undefined) {
         await db
           .update(rosterEntries)
           .set({
-            fantasyPoints: stats[0].fantasyPoints,
+            fantasyPoints,
             updatedAt: new Date(),
           })
           .where(eq(rosterEntries.id, entry.id));
