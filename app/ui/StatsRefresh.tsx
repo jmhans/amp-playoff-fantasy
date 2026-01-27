@@ -86,9 +86,6 @@ export default function StatsRefresh({ seasonId, week, isAdmin = false }: StatsR
         }
         // Show success message (optional)
         alert(`Stats updated! ${data.updatedPlayers} players and ${data.updatedTeams} teams updated.`);
-        
-        // Reload the page to show updated scores
-        window.location.reload();
       } else {
         alert('Failed to update stats. Please try again.');
       }
