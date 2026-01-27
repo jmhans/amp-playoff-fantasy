@@ -401,7 +401,12 @@ export async function POST(request: NextRequest) {
       if (!game || game.homeScore === null || game.awayScore === null) continue;
 
       // Only calculate spread points if the game is final
-      if (game.status !== 'STATUS_FINAL' && game.status !== 'Final') continue;
+      // ESPN uses multiple status values for completed games
+      const isFinal = game.status === 'STATUS_FINAL' || 
+                      game.status === 'Final' || 
+                      game.status === 'final' ||
+                      (game.status && game.status.includes('FINAL'));
+      if (!isFinal) continue;
 
       const teamPoints = calculateTeamSpreadPoints(
         entry.pickedTeam,

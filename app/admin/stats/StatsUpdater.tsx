@@ -23,6 +23,13 @@ export default function StatsUpdater() {
 
       const data = await response.json();
       setResult(data);
+      
+      // Reload the page after showing results for 2 seconds to display updated scores
+      if (data.success) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
     } catch (error) {
       setResult({ error: 'Failed to update stats' });
     } finally {
