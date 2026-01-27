@@ -353,10 +353,7 @@ export async function POST(request: NextRequest) {
         eq(playerGameStats.week, week)
       ));
 
-    // Create a map for fast lookup
-    const statsMap = new Map(weekPlayerStats.map(s => [s.espnPlayerId, s.fantasyPoints]));
-
-    // Get all roster entries with player info in one query
+    // Get all roster entries with player info that need updating
     const entriesWithPlayersAndStats = await db
       .select({
         id: rosterEntries.id,
@@ -370,20 +367,35 @@ export async function POST(request: NextRequest) {
         inArray(rosterEntries.position, ['QB', 'RB', 'WR', 'FLEX'])
       ));
 
-    // Update all player entries at once
-    for (const entry of entriesWithPlayersAndStats) {
-      if (!entry.espnId) continue;
-
-      const fantasyPoints = statsMap.get(entry.espnId);
-      if (fantasyPoints !== undefined) {
-        await db
-          .update(rosterEntries)
-          .set({
-            fantasyPoints,
-            updatedAt: new Date(),
-          })
-          .where(eq(rosterEntries.id, entry.id));
+    // Build and execute batch update using CASE statement
+    if (entriesWithPlayersAndStats.length > 0 && weekPlayerStats.length > 0) {
+      const { sql: drizzleSql } = await import('drizzle-orm');
+      
+      // Create mapping of espnId to points
+      const statsByEspnId = new Map(weekPlayerStats.map(s => [s.espnPlayerId, s.fantasyPoints]));
+      
+      // Build CASE statement for all players
+      let caseSQL = 'CASE';
+      for (const [espnId, points] of statsByEspnId.entries()) {
+        caseSQL += ` WHEN players.espn_id = '${espnId}' THEN ${points}`;
       }
+      caseSQL += ' ELSE roster_entries.fantasy_points END';
+      
+      // Execute single batch update query
+      await db.execute(
+        drizzleSql`
+          UPDATE roster_entries
+          SET fantasy_points = ${drizzleSql.raw(caseSQL)},
+              updated_at = NOW()
+          FROM players
+          WHERE roster_entries.player_id = players.id
+            AND roster_entries.season_id = ${seasonId}
+            AND roster_entries.week = ${week}
+            AND roster_entries.position IN ('QB', 'RB', 'WR', 'FLEX')
+            AND players.espn_id IS NOT NULL
+        `
+      );
+      updatedPlayers = entriesWithPlayersAndStats.length;
     }
 
     // Update roster entry fantasy points for teams
