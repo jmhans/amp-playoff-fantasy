@@ -381,18 +381,18 @@ export async function POST(request: NextRequest) {
       }
       caseSQL += ' ELSE roster_entries.fantasy_points END';
       
-      // Execute single batch update query
+      // Execute single batch update query with schema-qualified names
       await db.execute(
         drizzleSql`
-          UPDATE roster_entries
+          UPDATE ampplayoffs.roster_entries
           SET fantasy_points = ${drizzleSql.raw(caseSQL)},
               updated_at = NOW()
-          FROM players
-          WHERE roster_entries.player_id = players.id
-            AND roster_entries.season_id = ${seasonId}
-            AND roster_entries.week = ${week}
-            AND roster_entries.position IN ('QB', 'RB', 'WR', 'FLEX')
-            AND players.espn_id IS NOT NULL
+          FROM ampplayoffs.players
+          WHERE ampplayoffs.roster_entries.player_id = ampplayoffs.players.id
+            AND ampplayoffs.roster_entries.season_id = ${seasonId}
+            AND ampplayoffs.roster_entries.week = ${week}
+            AND ampplayoffs.roster_entries.position IN ('QB', 'RB', 'WR', 'FLEX')
+            AND ampplayoffs.players.espn_id IS NOT NULL
         `
       );
       updatedPlayers = entriesWithPlayersAndStats.length;
