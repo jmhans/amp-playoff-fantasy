@@ -39,7 +39,7 @@ interface PicksGridProps {
 }
 
 const POSITIONS = ['QB', 'RB', 'WR', 'FLEX', 'TEAM'];
-const WEEKS = [1, 2, 3, 4];
+const WEEKS = [1, 2, 3, 5];
 
 export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes, isAdmin = false, hidePicksUntilLock = false, viewingAsOwner }: PicksGridProps) {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
