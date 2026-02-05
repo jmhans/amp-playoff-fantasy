@@ -439,7 +439,7 @@ export async function initializeRosterEntries(participantId: number, seasonId?: 
       : await getOrCreateActiveSeason();
     
     const positions = ['QB', 'RB', 'WR', 'FLEX', 'TEAM'];
-    const weeks = [1, 2, 3, 4];
+    const weeks = [1, 2, 3, 5]; // Skip week 4 (Pro Bowl)
 
     for (const position of positions) {
       for (const week of weeks) {
@@ -651,9 +651,9 @@ export async function getPickCompletionStatus(seasonId: number) {
       )
       .groupBy(rosterEntries.participantId, rosterEntries.week);
     
-    // Create a complete grid for all participants and weeks (1-4)
+    // Create a complete grid for all participants and weeks (skip week 4 - Pro Bowl)
     const allParticipants = await db.select({ id: participants.id }).from(participants);
-    const WEEKS = [1, 2, 3, 4];
+    const WEEKS = [1, 2, 3, 5];
     
     const completeResult = [];
     for (const participant of allParticipants) {

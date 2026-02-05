@@ -72,7 +72,7 @@ The `rosterEntries` table stores:
 - `playerId`: Foreign key to the players table
 - `playerName`: Cached player name for display
 - `position`: The roster position (QB, RB, WR, FLEX, TEAM)
-- `week`: The week number (1-4)
+- `week`: The week number (1-5)
 - `participantId`: Reference to the participant/entry
 
 ## Future Enhancements

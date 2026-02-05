@@ -42,3 +42,4 @@ next-env.d.ts
 
 # fix documentation
 /docs/fixes
+.env*.local

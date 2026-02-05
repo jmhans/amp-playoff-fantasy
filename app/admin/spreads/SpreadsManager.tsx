@@ -99,7 +99,7 @@ export default function SpreadsManager() {
           onChange={(e) => setWeek(parseInt(e.target.value))}
           className="mt-1 block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
         >
-          {[1, 2, 3, 4].map((w) => (
+          {[1, 2, 3, 4, 5].map((w) => (
             <option key={w} value={w}>
               Week {w}
             </option>

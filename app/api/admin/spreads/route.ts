@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No active season' }, { status: 404 });
     }
 
-    // Fetch games from ESPN (playoff games are in weeks 1-4 with seasontype=3)
+    // Fetch games from ESPN (playoff games are in weeks 1-5 with seasontype=3)
     const response = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${activeSeason.year}&seasontype=3&week=${week}`
     );

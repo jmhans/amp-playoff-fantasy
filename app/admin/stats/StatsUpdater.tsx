@@ -49,7 +49,8 @@ export default function StatsUpdater() {
             <option value={1}>Week 1 (Wild Card)</option>
             <option value={2}>Week 2 (Divisional)</option>
             <option value={3}>Week 3 (Conference)</option>
-            <option value={4}>Week 4 (Super Bowl)</option>
+            <option value={4}>Week 4 (Pro Bowl)</option>
+            <option value={5}>Week 5 (Super Bowl)</option>
           </select>
         </div>
 

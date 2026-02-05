@@ -41,10 +41,10 @@ interface ParticipantsTableProps {
 export default function ParticipantsTable({ participants, userAuth0Id, userHasClaimed, scores, pickStatus, lockTimes }: ParticipantsTableProps) {
   const router = useRouter();
   const [claimingId, setClaimingId] = useState<number | null>(null);
-  const [sortColumn, setSortColumn] = useState<'week1' | 'week2' | 'week3' | 'week4' | 'total'>('total');
+  const [sortColumn, setSortColumn] = useState<'week1' | 'week2' | 'week3' | 'week5' | 'total'>('total');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const handleSort = (column: 'week1' | 'week2' | 'week3' | 'week4' | 'total') => {
+  const handleSort = (column: 'week1' | 'week2' | 'week3' | 'week5' | 'total') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -80,8 +80,8 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
   };
 
   const getCurrentWeek = () => {
-    // Find the first unlocked week
-    for (let week = 1; week <= 4; week++) {
+    // Find the first unlocked week (skip week 4 - Pro Bowl)
+    for (let week of [1, 2, 3, 5]) {
       if (!isWeekLocked(week)) {
         return week;
       }
@@ -268,11 +268,11 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
               </th>
               <th 
                 className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                onClick={() => handleSort('week4')}
+                onClick={() => handleSort('week5')}
               >
                 <div className="flex items-center justify-center gap-1">
-                  WK4
-                  {sortColumn === 'week4' && (
+                  WK5
+                  {sortColumn === 'week5' && (
                     <span className="text-blue-600 dark:text-blue-400">
                       {sortDirection === 'desc' ? '↓' : '↑'}
                     </span>
@@ -322,8 +322,8 @@ export default function ParticipantsTable({ participants, userAuth0Id, userHasCl
                   <td className={getWeekCellClass(participant.id, 3)}>
                     {getWeekDisplay(participant.id, 3)}
                   </td>
-                  <td className={getWeekCellClass(participant.id, 4)}>
-                    {getWeekDisplay(participant.id, 4)}
+                  <td className={getWeekCellClass(participant.id, 5)}>
+                    {getWeekDisplay(participant.id, 5)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-900 dark:text-white">
                     {getTotalScore(participant.id) || '-'}
