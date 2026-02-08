@@ -57,6 +57,13 @@
       "when": 1770579556371,
       "tag": "0007_remove_picked_spread",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770580959304,
+      "tag": "0008_remove_unused_tables",
+      "breakpoints": true
     }
   ]
 }

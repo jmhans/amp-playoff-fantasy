@@ -110,33 +110,6 @@ export const playerGameStats = ampPlayoffsSchema.table('player_game_stats', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Weekly scores
-export const weeklyScores = ampPlayoffsSchema.table('weekly_scores', {
-  id: serial('id').primaryKey(),
-  rosterEntryId: integer('roster_entry_id')
-    .notNull()
-    .references(() => rosterEntries.id, { onDelete: 'cascade' }),
-  week: integer('week').notNull(),
-  points: real('points').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// Weekly actuals (from ESPN/Sleeper)
-export const weeklyActuals = ampPlayoffsSchema.table('weekly_actuals', {
-  id: serial('id').primaryKey(),
-  playerId: integer('player_id')
-    .notNull()
-    .references(() => players.id, { onDelete: 'cascade' }),
-  espnId: text('espn_id').notNull(),
-  season: integer('season').notNull(),
-  week: integer('week').notNull(),
-  fantasyPoints: real('fantasy_points').notNull(),
-  stats: json('stats'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
 // System settings for tracking metadata
 export const systemSettings = ampPlayoffsSchema.table('system_settings', {
   id: serial('id').primaryKey(),
