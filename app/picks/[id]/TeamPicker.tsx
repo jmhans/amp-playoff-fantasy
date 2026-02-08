@@ -54,10 +54,8 @@ export default function TeamPicker({ seasonId, week, currentSelection, onSelect,
   };
 
   const handleTeamClick = (gameId: number, team: string, spread: number | null, isHome: boolean) => {
-    // Calculate the spread for the picked team
-    // Positive spread = team is favored
-    const pickedSpread = spread !== null ? (isHome ? spread : -spread) : null;
-    onSelect(gameId, team, pickedSpread);
+    // No longer need to calculate spread here - it's stored in games table
+    onSelect(gameId, team, null);
     onClose();
   };
 

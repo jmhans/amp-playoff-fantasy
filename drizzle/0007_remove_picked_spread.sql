@@ -1,0 +1,1 @@
+ALTER TABLE "ampplayoffs"."roster_entries" DROP COLUMN "picked_spread";

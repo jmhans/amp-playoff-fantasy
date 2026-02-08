@@ -24,7 +24,9 @@ interface RosterEntry {
   player: Player | null;
   gameId: number | null;
   pickedTeam: string | null;
-  pickedSpread: number | null;
+  gameSpread: number | null;
+  gameHomeTeam: string | null;
+  gameAwayTeam: string | null;
   fantasyPoints: number | null;
 }
 
@@ -169,7 +171,8 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
       const entry = getEntryForCell(editingCell.position, editingCell.week);
       
       if (entry) {
-        await updateRosterEntry(entry.id, null, team, gameId, team, spread);
+        // No longer need to pass spread - it's stored in games table
+        await updateRosterEntry(entry.id, null, team, gameId, team);
       }
       
       await loadEntries();
@@ -273,13 +276,14 @@ export default function PicksGrid({ participantId, seasonId, isOwner, lockTimes,
                           <div className="text-xs font-semibold text-gray-900 dark:text-white">
                             {entry.pickedTeam}
                           </div>
-                          {entry.pickedSpread !== null && (
+                          {entry.gameSpread !== null && entry.gameSpread !== undefined && (
                             <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                              {entry.pickedSpread === 0 
-                                ? 'PK' 
-                                : entry.pickedSpread > 0 
-                                  ? `+${entry.pickedSpread}` 
-                                  : entry.pickedSpread}
+                              {(() => {
+                                // Calculate spread relative to picked team
+                                const isHome = entry.pickedTeam === entry.gameHomeTeam;
+                                const displaySpread = isHome ? entry.gameSpread : -entry.gameSpread;
+                                return displaySpread === 0 ? 'PK' : displaySpread > 0 ? `+${displaySpread}` : displaySpread;
+                              })()}
                             </div>
                           )}
                           {entry.fantasyPoints !== null && entry.fantasyPoints !== undefined && (
