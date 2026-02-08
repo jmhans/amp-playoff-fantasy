@@ -4,10 +4,11 @@ import * as schema from './schema';
 
 // Use dev database for local development (when POSTGRES_URL_DEV is set)
 // Use prod database for production deployments
-// Vercel Storage prefixes vars with AMP_PLAYOFF_
-const dbUrl = process.env.POSTGRES_URL_DEV 
-  || process.env.AMP_PLAYOFF_POSTGRES_URL 
-  || process.env.POSTGRES_URL;
+// Check POSTGRES_URL first to allow manual override of integration-managed AMP_PLAYOFF_POSTGRES_URL
+// In production, don't use POSTGRES_URL_DEV even if it exists
+const dbUrl = process.env.NODE_ENV === 'production'
+  ? (process.env.POSTGRES_URL || process.env.AMP_PLAYOFF_POSTGRES_URL)
+  : (process.env.POSTGRES_URL_DEV || process.env.POSTGRES_URL);
 
 if (!dbUrl) {
   throw new Error('Database URL not found. Set POSTGRES_URL or POSTGRES_URL_DEV in environment variables.');
