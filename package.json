@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx drizzle-kit migrate && next build",
+    "build": "next build",
+    "build:with-migrate": "npx drizzle-kit migrate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
