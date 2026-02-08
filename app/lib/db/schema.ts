@@ -73,8 +73,8 @@ export const rosterEntries = ampPlayoffsSchema.table('roster_entries', {
   gameId: integer('game_id')
     .references(() => games.id, { onDelete: 'cascade' }),
   pickedTeam: text('picked_team'), // For TEAM position: which team was picked (home or away)
-  pickedSpread: real('picked_spread'), // The spread at time of pick (positive = team favored)
-  fantasyPoints: real('fantasy_points'), // Calculated fantasy points for this entry
+  // NOTE: pickedSpread removed - now calculated from games.spread based on picked team
+  // NOTE: fantasyPoints removed - now calculated from player_game_stats via JOIN
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

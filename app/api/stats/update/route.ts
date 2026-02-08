@@ -353,96 +353,14 @@ export async function POST(request: NextRequest) {
         eq(playerGameStats.week, week)
       ));
 
-    // Get all roster entries with player info that need updating
-    const entriesWithPlayersAndStats = await db
-      .select({
-        id: rosterEntries.id,
-        espnId: players.espnId,
-      })
-      .from(rosterEntries)
-      .innerJoin(players, eq(players.id, rosterEntries.playerId))
-      .where(and(
-        eq(rosterEntries.seasonId, seasonId),
-        eq(rosterEntries.week, week),
-        inArray(rosterEntries.position, ['QB', 'RB', 'WR', 'FLEX'])
-      ));
-
-    // Build and execute batch update using CASE statement
-    if (entriesWithPlayersAndStats.length > 0 && weekPlayerStats.length > 0) {
-      const { sql: drizzleSql } = await import('drizzle-orm');
-      
-      // Create mapping of espnId to points
-      const statsByEspnId = new Map(weekPlayerStats.map(s => [s.espnPlayerId, s.fantasyPoints]));
-      
-      // Build CASE statement for all players
-      let caseSQL = 'CASE';
-      for (const [espnId, points] of statsByEspnId.entries()) {
-        caseSQL += ` WHEN players.espn_id = '${espnId}' THEN ${points}`;
-      }
-      caseSQL += ' ELSE roster_entries.fantasy_points END';
-      
-      // Execute single batch update query with schema-qualified names
-      await db.execute(
-        drizzleSql`
-          UPDATE ampplayoffs.roster_entries
-          SET fantasy_points = ${drizzleSql.raw(caseSQL)},
-              updated_at = NOW()
-          FROM ampplayoffs.players
-          WHERE ampplayoffs.roster_entries.player_id = ampplayoffs.players.id
-            AND ampplayoffs.roster_entries.season_id = ${seasonId}
-            AND ampplayoffs.roster_entries.week = ${week}
-            AND ampplayoffs.roster_entries.position IN ('QB', 'RB', 'WR', 'FLEX')
-            AND ampplayoffs.players.espn_id IS NOT NULL
-        `
-      );
-      updatedPlayers = entriesWithPlayersAndStats.length;
-    }
-
-    // Update roster entry fantasy points for teams
-    const entriesWithTeams = await db
-      .select()
-      .from(rosterEntries)
-      .where(and(
-        eq(rosterEntries.seasonId, seasonId),
-        eq(rosterEntries.week, week),
-        eq(rosterEntries.position, 'TEAM')
-      ));
-
-    for (const entry of entriesWithTeams) {
-      if (!entry.gameId || !entry.pickedTeam || entry.pickedSpread === null) continue;
-
-      const game = weekGames.find(g => g.id === entry.gameId);
-      if (!game || game.homeScore === null || game.awayScore === null) continue;
-
-      // Only calculate spread points if the game is final
-      // ESPN uses multiple status values for completed games
-      const isFinal = game.status === 'STATUS_FINAL' || 
-                      game.status === 'Final' || 
-                      game.status === 'final' ||
-                      (game.status && game.status.includes('FINAL'));
-      if (!isFinal) continue;
-
-      const teamPoints = calculateTeamSpreadPoints(
-        entry.pickedTeam,
-        game.homeTeam,
-        game.awayTeam,
-        game.homeScore,
-        game.awayScore,
-        entry.pickedSpread
-      );
-
-      await db
-        .update(rosterEntries)
-        .set({
-          fantasyPoints: teamPoints,
-          updatedAt: new Date(),
-        })
-        .where(eq(rosterEntries.id, entry.id));
-
-      updatedTeams++;
-    }
+    console.log(`[Stats Update] ✓ Player stats synced (${Date.now() - rosterUpdateStart}ms)`);
+    console.log(`[Stats Update]   Updated ${weekPlayerStats.length} player records`);
     
-    console.log(`[Stats Update] ✓ Roster entries updated (${Date.now() - rosterUpdateStart}ms)`);
+    // NOTE: No longer updating roster_entries.fantasy_points 
+    // Points are now calculated via JOIN with player_game_stats at query time
+    updatedPlayers = weekPlayerStats.length;
+    
+    console.log(`[Stats Update] ✓ Roster entries will calculate from player_game_stats via JOIN`);
     
     if (skippedGames > 0) {
       console.warn(`[Stats Update] ⚠️  WARNING: ${skippedGames} games were skipped due to missing ESPN IDs`);

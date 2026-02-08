@@ -1,0 +1,1 @@
+ALTER TABLE "ampplayoffs"."roster_entries" DROP COLUMN "fantasy_points";

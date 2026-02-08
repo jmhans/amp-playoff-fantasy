@@ -131,7 +131,7 @@ export async function toggleHidePicksUntilLock(participantId: number, hidePicksU
 
 export async function getRosterEntries(participantId: number, seasonId?: number) {
   try {
-    const { players } = await import('@/app/lib/db/schema');
+    const { sql } = await import('drizzle-orm');
     
     // Build where conditions
     const conditions = [eq(rosterEntries.participantId, participantId)];
@@ -151,14 +151,47 @@ export async function getRosterEntries(participantId: number, seasonId?: number)
         team: rosterEntries.team,
         gameId: rosterEntries.gameId,
         pickedTeam: rosterEntries.pickedTeam,
-        pickedSpread: rosterEntries.pickedSpread,
-        fantasyPoints: rosterEntries.fantasyPoints,
+        // Include game spread for display purposes
+        gameSpread: games.spread,
+        gameHomeTeam: games.homeTeam,
+        gameAwayTeam: games.awayTeam,
+        // Calculate fantasy points via JOIN with player_game_stats and games
+        fantasyPoints: sql<number | null>`
+          CASE 
+            WHEN ${rosterEntries.position} IN ('QB', 'RB', 'WR', 'FLEX') 
+            THEN ${playerGameStats.fantasyPoints}
+            WHEN ${rosterEntries.position} = 'TEAM' AND ${games.homeScore} IS NOT NULL AND ${games.awayScore} IS NOT NULL
+            THEN 
+              CASE
+                WHEN ${rosterEntries.pickedTeam} = ${games.homeTeam} THEN
+                  CASE 
+                    WHEN (${games.homeScore} - ${games.awayScore}) + ${games.spread} > 0 THEN 4
+                    ELSE 0
+                  END
+                WHEN ${rosterEntries.pickedTeam} = ${games.awayTeam} THEN
+                  CASE 
+                    WHEN (${games.awayScore} - ${games.homeScore}) + (-${games.spread}) > 0 THEN 4
+                    ELSE 0
+                  END
+                ELSE 0
+              END
+            ELSE NULL
+          END
+        `,
         createdAt: rosterEntries.createdAt,
         updatedAt: rosterEntries.updatedAt,
         player: players,
       })
       .from(rosterEntries)
       .leftJoin(players, eq(rosterEntries.playerId, players.id))
+      .leftJoin(playerGameStats, 
+        and(
+          eq(rosterEntries.playerId, playerGameStats.playerId),
+          eq(rosterEntries.week, playerGameStats.week),
+          eq(rosterEntries.seasonId, playerGameStats.seasonId)
+        )
+      )
+      .leftJoin(games, eq(rosterEntries.gameId, games.id))
       .where(and(...conditions));
     
     return entries;
@@ -268,130 +301,19 @@ function calculateFantasyPoints(stats: {
   return points;
 }
 
-// Calculate team spread points
-function calculateTeamSpreadPoints(
-  pickedTeam: string,
-  homeTeam: string,
-  awayTeam: string,
-  homeScore: number,
-  awayScore: number,
-  pickedSpread: number
-): number {
-  const isHome = pickedTeam === homeTeam;
-  const teamScore = isHome ? homeScore : awayScore;
-  const opponentScore = isHome ? awayScore : homeScore;
-  
-  // Adjust score by spread (positive spread = favored)
-  const adjustedMargin = teamScore - opponentScore + pickedSpread;
-  
-  if (adjustedMargin > 0) {
-    return 4; // Beat the spread
-  } else if (adjustedMargin === 0) {
-    return 2; // Push
-  } else {
-    return 0; // Lost against spread
-  }
-}
-
-// Helper to recalculate fantasy points for a specific roster entry
-async function recalculateEntryFantasyPoints(entryId: number): Promise<boolean> {
-  try {
-    const entry = await db
-      .select()
-      .from(rosterEntries)
-      .where(eq(rosterEntries.id, entryId))
-      .limit(1);
-
-    if (!entry[0]) return false;
-
-    const rosterEntry = entry[0];
-
-    // Handle TEAM position
-    if (rosterEntry.position === 'TEAM') {
-      if (!rosterEntry.gameId || !rosterEntry.pickedTeam || rosterEntry.pickedSpread === null) {
-        return false;
-      }
-
-      const game = await db
-        .select()
-        .from(games)
-        .where(eq(games.id, rosterEntry.gameId))
-        .limit(1);
-
-      if (!game[0] || game[0].homeScore === null || game[0].awayScore === null) {
-        return false; // Game not completed yet
-      }
-
-      const teamPoints = calculateTeamSpreadPoints(
-        rosterEntry.pickedTeam,
-        game[0].homeTeam,
-        game[0].awayTeam,
-        game[0].homeScore,
-        game[0].awayScore,
-        rosterEntry.pickedSpread
-      );
-
-      await db
-        .update(rosterEntries)
-        .set({
-          fantasyPoints: teamPoints,
-          updatedAt: new Date(),
-        })
-        .where(eq(rosterEntries.id, entryId));
-
-      return true;
-    }
-
-    // Handle player positions
-    if (!rosterEntry.playerId) return false;
-
-    const player = await db
-      .select()
-      .from(players)
-      .where(eq(players.id, rosterEntry.playerId))
-      .limit(1);
-
-    if (!player[0]?.espnId) return false;
-
-    const stats = await db
-      .select()
-      .from(playerGameStats)
-      .where(and(
-        eq(playerGameStats.espnPlayerId, player[0].espnId),
-        eq(playerGameStats.week, rosterEntry.week),
-        eq(playerGameStats.seasonId, rosterEntry.seasonId)
-      ))
-      .limit(1);
-
-    if (stats[0]) {
-      await db
-        .update(rosterEntries)
-        .set({
-          fantasyPoints: stats[0].fantasyPoints,
-          updatedAt: new Date(),
-        })
-        .where(eq(rosterEntries.id, entryId));
-
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Error recalculating entry fantasy points:', error);
-    return false;
-  }
-}
+// NOTE: Helper functions for calculating team spread points and recalculating entry points
+// have been removed. Fantasy points are now calculated dynamically via SQL JOINs in
+// getRosterEntries() and getAllParticipantsScores()
 
 export async function updateRosterEntry(
   entryId: number, 
   playerId: number | null, 
   playerName: string,
   gameId?: number | null,
-  pickedTeam?: string | null,
-  pickedSpread?: number | null
+  pickedTeam?: string | null
 ) {
   try {
-    console.log('updateRosterEntry called:', { entryId, playerId, playerName, gameId, pickedTeam, pickedSpread });
+    console.log('updateRosterEntry called:', { entryId, playerId, playerName, gameId, pickedTeam });
     
     // Get the entry to check if the week is locked
     const existingEntry = await db
@@ -407,7 +329,6 @@ export async function updateRosterEntry(
         playerName,
         gameId: gameId ?? null,
         pickedTeam: pickedTeam ?? null,
-        pickedSpread: pickedSpread ?? null,
         updatedAt: new Date()
       })
       .where(eq(rosterEntries.id, entryId))
@@ -415,14 +336,8 @@ export async function updateRosterEntry(
 
     console.log('Database update result:', result);
 
-    // If the week is locked (games started), recalculate fantasy points
-    if (existingEntry[0]) {
-      const weekLocked = await isWeekLocked(existingEntry[0].seasonId, existingEntry[0].week);
-      if (weekLocked) {
-        console.log('Week is locked, recalculating fantasy points...');
-        await recalculateEntryFantasyPoints(entryId);
-      }
-    }
+    // Fantasy points no longer need to be recalculated here - they're calculated
+    // dynamically via SQL JOINs when fetching roster entries
 
     return { success: true };
   } catch (error) {
@@ -507,9 +422,43 @@ export async function getParticipantWeeklyScores(participantId: number, seasonId
     const weeklyTotals = await db
       .select({
         week: rosterEntries.week,
-        totalPoints: sql<number>`COALESCE(SUM(${rosterEntries.fantasyPoints}), 0)`,
+        totalPoints: sql<number>`
+          COALESCE(
+            SUM(
+              CASE 
+                WHEN ${rosterEntries.position} IN ('QB', 'RB', 'WR', 'FLEX') 
+                THEN COALESCE(${playerGameStats.fantasyPoints}, 0)
+                WHEN ${rosterEntries.position} = 'TEAM' AND ${games.homeScore} IS NOT NULL AND ${games.awayScore} IS NOT NULL
+                THEN 
+                  CASE
+                    WHEN ${rosterEntries.pickedTeam} = ${games.homeTeam} THEN
+                      CASE 
+                        WHEN (${games.homeScore} - ${games.awayScore}) + ${games.spread} > 0 THEN 4
+                        ELSE 0
+                      END
+                    WHEN ${rosterEntries.pickedTeam} = ${games.awayTeam} THEN
+                      CASE 
+                        WHEN (${games.awayScore} - ${games.homeScore}) + (-${games.spread}) > 0 THEN 4
+                        ELSE 0
+                      END
+                    ELSE 0
+                  END
+                ELSE 0
+              END
+            ),
+            0
+          )
+        `,
       })
       .from(rosterEntries)
+      .leftJoin(playerGameStats, 
+        and(
+          eq(rosterEntries.playerId, playerGameStats.playerId),
+          eq(rosterEntries.week, playerGameStats.week),
+          eq(rosterEntries.seasonId, playerGameStats.seasonId)
+        )
+      )
+      .leftJoin(games, eq(rosterEntries.gameId, games.id))
       .where(and(
         eq(rosterEntries.participantId, participantId),
         eq(rosterEntries.seasonId, seasonId)
@@ -527,13 +476,50 @@ export async function getAllParticipantsScores(seasonId: number) {
   try {
     const { sql } = await import('drizzle-orm');
     
+    // Join roster entries with player_game_stats to calculate points
+    // For player positions (QB/RB/WR/FLEX), get fantasy points from player_game_stats
+    // For TEAM position, calculate spread-based points from games table
     const scores = await db
       .select({
         participantId: rosterEntries.participantId,
         week: rosterEntries.week,
-        totalPoints: sql<number>`COALESCE(SUM(${rosterEntries.fantasyPoints}), 0)`,
+        totalPoints: sql<number>`
+          COALESCE(
+            SUM(
+              CASE 
+                WHEN ${rosterEntries.position} IN ('QB', 'RB', 'WR', 'FLEX') 
+                THEN COALESCE(${playerGameStats.fantasyPoints}, 0)
+                WHEN ${rosterEntries.position} = 'TEAM' AND ${games.homeScore} IS NOT NULL AND ${games.awayScore} IS NOT NULL
+                THEN 
+                  CASE
+                    WHEN ${rosterEntries.pickedTeam} = ${games.homeTeam} THEN
+                      CASE 
+                        WHEN (${games.homeScore} - ${games.awayScore}) + ${games.spread} > 0 THEN 4
+                        ELSE 0
+                      END
+                    WHEN ${rosterEntries.pickedTeam} = ${games.awayTeam} THEN
+                      CASE 
+                        WHEN (${games.awayScore} - ${games.homeScore}) + (-${games.spread}) > 0 THEN 4
+                        ELSE 0
+                      END
+                    ELSE 0
+                  END
+                ELSE 0
+              END
+            ),
+            0
+          )
+        `,
       })
       .from(rosterEntries)
+      .leftJoin(playerGameStats, 
+        and(
+          eq(rosterEntries.playerId, playerGameStats.playerId),
+          eq(rosterEntries.week, playerGameStats.week),
+          eq(rosterEntries.seasonId, playerGameStats.seasonId)
+        )
+      )
+      .leftJoin(games, eq(rosterEntries.gameId, games.id))
       .where(eq(rosterEntries.seasonId, seasonId))
       .groupBy(rosterEntries.participantId, rosterEntries.week);
     

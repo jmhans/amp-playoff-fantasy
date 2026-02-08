@@ -36,33 +36,19 @@ export async function POST(request: NextRequest) {
 
     if (nonFinalGameIds.length === 0) {
       return NextResponse.json({ 
-        message: 'No non-final games found',
+        message: 'No non-final games found - fantasy points calculated dynamically',
         gamesChecked: weekGames.length 
       });
     }
 
     console.log(`[Fix Team Points] Found ${nonFinalGameIds.length} non-final games`);
 
-    // Reset fantasy points for team picks in non-final games
-    const result = await db
-      .update(rosterEntries)
-      .set({
-        fantasyPoints: null,
-        updatedAt: new Date(),
-      })
-      .where(and(
-        eq(rosterEntries.seasonId, seasonId),
-        eq(rosterEntries.week, week),
-        eq(rosterEntries.position, 'TEAM'),
-        inArray(rosterEntries.gameId, nonFinalGameIds)
-      ))
-      .returning();
-
-    console.log(`[Fix Team Points] Reset ${result.length} team roster entries`);
+    // NOTE: Fantasy points are now calculated dynamically via SQL JOINs.
+    // No need to reset stored values. This endpoint kept for backward compatibility.
 
     return NextResponse.json({
       success: true,
-      resetCount: result.length,
+      message: 'Fantasy points calculated dynamically - no reset needed',
       nonFinalGames: nonFinalGameIds.length,
       totalGames: weekGames.length,
     });
