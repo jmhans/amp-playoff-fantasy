@@ -22,6 +22,12 @@ export default function Navigation() {
         >
           Participants
         </Link>
+        <Link
+          href="/participants/weekly-lineup"
+          className="flex h-10 items-center rounded-lg bg-orange-600 px-4 text-sm font-medium text-white transition-colors hover:bg-orange-500"
+        >
+          Current Week
+        </Link>
         {user && isAdmin(user) && (
           <Link
             href="/admin"
@@ -58,6 +64,13 @@ export default function Navigation() {
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 z-10">
               <div className="py-1" role="menu">
+                <Link
+                  href="/participants/weekly-lineup"
+                  className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Current Week
+                </Link>
                 <Link
                   href="/participants"
                   className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

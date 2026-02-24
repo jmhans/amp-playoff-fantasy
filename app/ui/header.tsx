@@ -12,9 +12,9 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-20 shrink-0 items-center justify-between rounded-lg bg-blue-500 dark:bg-blue-600 px-4 md:h-24 mb-6">
+    <div className="flex h-20 shrink-0 items-center justify-between rounded-lg bg-orange-500 dark:bg-orange-600 px-4 md:h-24 mb-6">
       <Link href="/participants">
-        <h1 className={`${lusitana.className} text-white text-2xl md:text-4xl hover:text-blue-100 transition-colors cursor-pointer`}>
+        <h1 className={`${lusitana.className} text-white text-2xl md:text-4xl hover:text-orange-100 transition-colors cursor-pointer`}>
           AMP Playoff Fantasy
         </h1>
       </Link>
@@ -25,7 +25,7 @@ export default function Header() {
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-600 hover:bg-orange-700 transition-colors"
             aria-label="Menu"
           >
             <svg
@@ -55,6 +55,13 @@ export default function Header() {
                     onClick={() => setMenuOpen(false)}
                   >
                     Participants
+                  </Link>
+                  <Link
+                    href="/participants/weekly-lineup"
+                    className="block px-4 py-2 text-sm text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Current Week
                   </Link>
                   <Link
                     href="/stats"
