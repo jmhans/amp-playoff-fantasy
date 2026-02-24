@@ -32,8 +32,8 @@ export default async function WeeklyLineupPage() {
 	participantLineups.sort((a, b) => b.totalPoints - a.totalPoints);
 
 	// Helper functions for images
-	const getTeamLogoUrl = (team) => `https://a.espncdn.com/i/teamlogos/nfl/500/${team}.png`;
-	const getPlayerImageUrl = (espnId) => espnId ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png` : null;
+	const getTeamLogoUrl = (team: string) => `https://a.espncdn.com/i/teamlogos/nfl/500/${team}.png`;
+	const getPlayerImageUrl = (espnId?: string | null) => espnId ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png` : null;
 
 	return (
 		<div className="space-y-6">
